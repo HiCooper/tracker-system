@@ -1,0 +1,6 @@
+[submodule "backend/tracker-service"]
+	path = backend/tracker-service
+	url = git@github.com:HiCooper/tracker-service.git
+[submodule "backend/tracker-admin"]
+	path = backend/tracker-admin
+	url = git@github.com:HiCooper/tracker-admin.git
