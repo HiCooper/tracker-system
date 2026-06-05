@@ -1,63 +1,43 @@
 #!/usr/bin/env node
 /**
- * Take screenshots of all admin pages and save to docs/images/
- * Usage: node scripts/take-screenshots.mjs [baseUrl]
- * Default baseUrl: http://localhost:5180
+ * Generic frontend screenshot tool.
+ * Usage: node take-screenshots.mjs [--out dir] <url1> [url2] [url3]
  */
 import { chromium } from 'playwright';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+import { mkdirSync } from 'fs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const BASE = process.argv[2] || 'http://localhost:5180';
-const OUT = resolve(__dirname, '../../../../docs/images');
+const args = process.argv.slice(2);
+let outDir = resolve('../../docs/images');
+const urls = [];
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--out' && args[i + 1]) {
+    outDir = resolve(args[++i]);
+  } else {
+    urls.push(args[i]);
+  }
+}
+
+if (urls.length === 0) {
+  console.error('Usage: node take-screenshots.mjs [--out dir] <url1> [url2] ...');
+  process.exit(1);
+}
+
+mkdirSync(outDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 try {
-  // 1. SPM — App List
-  await page.goto(`${BASE}/tracker/setup`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: resolve(OUT, 'admin-setup-apps.png') });
-  console.log('✓ admin-setup-apps.png');
-
-  // 2. SPM — Page List (click first "进入")
-  await page.click('table button:has-text("进入")');
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: resolve(OUT, 'admin-setup-pages.png') });
-  console.log('✓ admin-setup-pages.png');
-
-  // 3. Analysis — App Overview
-  await page.goto(`${BASE}/tracker/analysis`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
-  await page.screenshot({ path: resolve(OUT, 'admin-analysis-apps.png') });
-  console.log('✓ admin-analysis-apps.png');
-
-  // 4. Analysis — Page Analysis
-  await page.click('.ant-card');
-  await page.waitForTimeout(1000);
-  await page.screenshot({ path: resolve(OUT, 'admin-analysis-pages.png') });
-  console.log('✓ admin-analysis-pages.png');
-
-  // 5. Analysis — Block Analysis
-  await page.click('table a');
-  await page.waitForTimeout(1000);
-  await page.screenshot({ path: resolve(OUT, 'admin-analysis-blocks.png') });
-  console.log('✓ admin-analysis-blocks.png');
-
-  // 6. Analysis — Function + Trend Modal
-  await page.click('table a');
-  await page.waitForTimeout(1000);
-  const trendBtns = page.locator('button:has-text("查看趋势")');
-  if (await trendBtns.count() > 0) {
-    await trendBtns.first().click();
-    await page.waitForTimeout(800);
+  for (const url of urls) {
+    const name = url.replace(/https?:\/\//, '').replace(/[:\/]/g, '-').replace(/-$/, '') || 'index';
+    console.log(`Capturing ${url} → ${name}.png`);
+    await page.goto(url, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: resolve(outDir, `${name}.png`) });
   }
-  await page.screenshot({ path: resolve(OUT, 'admin-analysis-functions.png') });
-  console.log('✓ admin-analysis-functions.png');
-
-  console.log('\nDone — 6 screenshots saved to docs/images/');
+  console.log(`\nDone — ${urls.length} screenshots saved to ${outDir}`);
 } finally {
   await browser.close();
 }
