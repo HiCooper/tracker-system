@@ -1,55 +1,77 @@
-/** Metric aggregation type */
-export type AggType = 'uniq' | 'count' | 'sum' | 'avg';
-
-/** Filter operator */
-export type FilterOperator =
-  | 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte'
-  | 'contains' | 'not_contains' | 'is_null' | 'is_not_null' | 'in';
-
-/** Time interval */
-export type TimeInterval = 'hour' | 'day' | 'week' | 'month';
-
-/** Metric query */
-export interface MetricQuery {
-  aggType: AggType;
-  field?: string;
-  preset?: string;
-}
-
-/** Filter condition */
-export interface FilterCondition {
-  key: string;
-  operator: FilterOperator;
-  value?: unknown;
-}
-
-/** Event analysis request */
-export interface EventAnalysisRequest {
-  eventTypes?: string[];
-  metrics?: MetricQuery[];
-  groupBy?: string[];
-  filters?: FilterCondition[];
-  startTime: string;
-  endTime: string;
-  interval?: TimeInterval;
-}
-
-/** Data point in a series */
-export interface DataPoint {
+export interface TrendPoint {
   time: string;
-  value: number;
+  exposurePv: number;
+  exposureUv: number;
 }
 
-/** Chart series */
-export interface ChartSeries {
-  name: string;
-  eventType: string;
-  data: DataPoint[];
+export interface AppMetric {
+  appCode: string;
+  appName: string;
+  dau: number;
+  totalPv: number;
+  pageCount: number;
 }
 
-/** Event analysis response */
-export interface EventAnalysisResponse {
-  interval: string;
-  series: ChartSeries[];
-  tableData: Record<string, unknown>[];
+export interface PageMetric {
+  pageCode: string;
+  pageName: string;
+  pv: number;
+  uv: number;
+  avgStayDuration: number;
+  bounceRate: number;
+  blockCount: number;
+}
+
+export interface BlockMetric {
+  blockCode: string;
+  blockName: string;
+  exposurePv: number;
+  exposureUv: number;
+  clickPv: number;
+  clickUv: number;
+  ctr: number;
+  functionCount: number;
+}
+
+export interface FunctionMetric {
+  funcCode: string;
+  funcName: string;
+  exposurePv: number;
+  exposureUv: number;
+  clickPv: number;
+  clickUv: number;
+  ctr: number;
+  penetrationRate: number;
+}
+
+export interface DayData {
+  date: string;
+  exposurePv: number;
+  exposureUv: number;
+  clickPv: number;
+  clickUv: number;
+  ctr: number;
+  penetrationRate: number;
+}
+
+export interface PageAnalysisResult {
+  trend: TrendPoint[];
+  summary: Record<string, number>;
+  pages: PageMetric[];
+}
+
+export interface BlockAnalysisResult {
+  trend: TrendPoint[];
+  summary: Record<string, number>;
+  blocks: BlockMetric[];
+}
+
+export interface FunctionAnalysisResult {
+  trend: TrendPoint[];
+  summary: Record<string, number>;
+  functions: FunctionMetric[];
+}
+
+export interface TrendDetailResult {
+  detail: DayData[];
 }

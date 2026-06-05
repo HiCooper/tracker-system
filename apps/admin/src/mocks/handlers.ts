@@ -1,334 +1,236 @@
 import { http, HttpResponse } from 'msw';
-import { mockEvents, getEventById } from './events';
-import { mockProperties, getPropertiesByEventId } from './properties';
-import { mockSpms } from './spm';
-import { mockDashboards } from './dashboards';
-import { generateMockAnalysis } from './analysis';
 
 const BASE = '/api/v1';
 
-// Helper to create paginated response
-function paginate<T>(list: T[], page: number, size: number) {
-  const total = list.length;
-  const pages = Math.ceil(total / size);
-  const start = (page - 1) * size;
-  const paged = list.slice(start, start + size);
-  return { list: paged, total, page, size, pages };
+// ============ In-memory seed stores ============
+let appId = 1, pageId = 1, blockId = 1, funcId = 1;
+
+interface App { id: number; appCode: string; appName: string; description: string; createdAt: string; }
+interface PageItem { id: number; appId: number; appCode: string; pageCode: string; pageName: string; createdAt: string; }
+interface BlockItem { id: number; pageId: number; blockCode: string; blockName: string; createdAt: string; }
+interface FuncItem { id: number; blockId: number; funcCode: string; funcName: string; createdAt: string; }
+
+const apps: App[] = [];
+const pages: PageItem[] = [];
+const blocks: BlockItem[] = [];
+const functions: FuncItem[] = [];
+
+function seed() {
+  const a1: App = { id: appId++, appCode: 'a_web', appName: '主站应用', description: '面向C端用户的主站', createdAt: '2024-06-01T00:00:00' };
+  const a2: App = { id: appId++, appCode: 'a_merchant', appName: '商家后台', description: '商家管理后台', createdAt: '2024-06-03T00:00:00' };
+  const a3: App = { id: appId++, appCode: 'a_ds', appName: '数据平台', description: '内部数据平台', createdAt: '2024-06-05T00:00:00' };
+  apps.push(a1, a2, a3);
+
+  const pagesData: [number, string, string, string][] = [
+    [a1.id, 'b_home', '首页', 'a_web'], [a1.id, 'b_product', '商品详情', 'a_web'],
+    [a1.id, 'b_cart', '购物车', 'a_web'], [a1.id, 'b_search', '搜索结果', 'a_web'],
+    [a1.id, 'b_user', '个人中心', 'a_web'], [a1.id, 'b_checkout', '结算页', 'a_web'],
+    [a1.id, 'b_category', '分类页', 'a_web'], [a1.id, 'b_landing', '活动落地页', 'a_web'],
+    [a2.id, 'b_dashboard', '首页看板', 'a_merchant'], [a2.id, 'b_goods', '商品管理', 'a_merchant'],
+    [a2.id, 'b_order', '订单管理', 'a_merchant'], [a2.id, 'b_data', '数据中心', 'a_merchant'],
+    [a2.id, 'b_setting', '店铺设置', 'a_merchant'],
+    [a3.id, 'b_overview', '数据概览', 'a_ds'], [a3.id, 'b_reports', '报表中心', 'a_ds'],
+    [a3.id, 'b_abtest', 'AB实验', 'a_ds'],
+  ];
+  for (const [aid, pc, pn, ac] of pagesData) {
+    pages.push({ id: pageId++, appId: aid as number, appCode: ac as string, pageCode: `${ac}.${pc}`, pageName: pn, createdAt: '2024-06-0' + (1 + Math.floor(Math.random() * 9)) + 'T00:00:00' });
+  }
+
+  const blocksData: [number, string, string][] = [
+    [1, 'c_banner', 'Banner区'], [1, 'c_recommend', '推荐区'], [1, 'c_nav', '导航区'], [1, 'c_feeds', 'Feed流'], [1, 'c_search_bar', '搜索栏'],
+    [2, 'c_image', '图片区'], [2, 'c_action', '操作区'], [2, 'c_info', '商品信息'], [2, 'c_comment', '评论区'],
+  ];
+  for (const [pid, bc, bn] of blocksData) {
+    const page = pages.find(p => p.id === pid);
+    blocks.push({ id: blockId++, pageId: pid as number, blockCode: `${page!.pageCode}.${bc}`, blockName: bn, createdAt: '2024-06-01T00:00:00' });
+  }
+
+  const funcsData: [number, string, string][] = [
+    [1, 'd_slide_1', '轮播图1'], [1, 'd_slide_2', '轮播图2'], [1, 'd_slide_3', '轮播图3'],
+    [2, 'd_pic_1', '主图1'], [2, 'd_pic_2', '主图2'], [2, 'd_btn_buy', '购买按钮'],
+  ];
+  for (const [bid, fc, fn] of funcsData) {
+    const block = blocks.find(b => b.id === bid);
+    functions.push({ id: funcId++, blockId: bid as number, funcCode: `${block!.blockCode}.${fc}`, funcName: fn, createdAt: '2024-06-01T00:00:00' });
+  }
+}
+seed();
+
+function r(n: number) { return Math.floor(Math.random() * n); }
+
+// ---- Mock data generators (pure, no React dependency) ----
+function genTrendPoint(daysAgo: number): { time: string; exposurePv: number; exposureUv: number } {
+  const d = new Date(); d.setDate(d.getDate() - daysAgo);
+  return { time: d.toISOString().slice(0, 10), exposurePv: r(200000) + 50000, exposureUv: r(100000) + 20000 };
 }
 
-// In-memory stores (for CRUD operations during session)
-let eventsStore = [...mockEvents];
-let propertiesStore = [...mockProperties];
-let spmsStore = [...mockSpms];
-let dashboardsStore = [...mockDashboards];
-let nextEventId = 200;
-let nextPropId = 300;
-let nextSpmId = 400;
-let nextDashId = 10;
+function genTrend(days: number) { return Array.from({ length: days }, (_, i) => genTrendPoint(days - 1 - i)); }
+
+function genDayData(daysAgo: number) {
+  const expPv = r(15000) + 5000, expUv = Math.floor(expPv * (0.4 + Math.random() * 0.3));
+  const hasClick = daysAgo % 3 !== 0;
+  const clkPv = hasClick ? Math.floor(expPv * (0.05 + Math.random() * 0.2)) : 0;
+  const clkUv = hasClick ? Math.floor(clkPv * (0.5 + Math.random() * 0.3)) : 0;
+  const d = new Date(); d.setDate(d.getDate() - daysAgo);
+  return { date: d.toISOString().slice(0, 10), exposurePv: expPv, exposureUv: expUv, clickPv: clkPv, clickUv: clkUv, ctr: hasClick ? clkPv / expPv : 0, penetrationRate: 0.2 + Math.random() * 0.4 };
+}
+
+function genDayDetail(days: number) { return Array.from({ length: days }, (_, i) => genDayData(i)).reverse(); }
 
 export const handlers = [
-  // ==================== Event CRUD ====================
-  http.get(`${BASE}/events`, ({ request }) => {
-    const url = new URL(request.url);
-    const page = Number(url.searchParams.get('page') || 1);
-    const size = Number(url.searchParams.get('size') || 20);
-    const keyword = url.searchParams.get('keyword') || '';
-    const category = url.searchParams.get('category') || '';
-    const status = url.searchParams.get('status');
-
-    let filtered = [...eventsStore];
-    if (keyword) {
-      const kw = keyword.toLowerCase();
-      filtered = filtered.filter(
-        (e) =>
-          e.eventKey.toLowerCase().includes(kw) ||
-          e.eventName.toLowerCase().includes(kw) ||
-          e.description.toLowerCase().includes(kw),
-      );
-    }
-    if (category) {
-      filtered = filtered.filter((e) => e.category === category);
-    }
-    if (status !== null && status !== '') {
-      filtered = filtered.filter((e) => e.status === Number(status));
-    }
-
-    const result = paginate(filtered, page, size);
-    return HttpResponse.json({ code: 200, message: 'success', data: result, timestamp: Date.now() });
+  // ============ Setup: Apps ============
+  http.get(`${BASE}/setup/apps`, () => {
+    const list = apps.map(a => ({ ...a, pageCount: pages.filter(p => p.appId === a.id).length }));
+    return HttpResponse.json({ code: 200, message: 'success', data: list, timestamp: Date.now() });
+  }),
+  http.post(`${BASE}/setup/apps`, async ({ request }) => {
+    const body = await request.json() as { appName: string; appCode: string; description?: string };
+    const a: App = { id: appId++, appCode: body.appCode, appName: body.appName, description: body.description || '', createdAt: new Date().toISOString() };
+    apps.push(a);
+    return HttpResponse.json({ code: 200, message: 'success', data: { ...a, pageCount: 0 }, timestamp: Date.now() }, { status: 201 });
+  }),
+  http.get(`${BASE}/setup/apps/:id`, ({ params }) => {
+    const a = apps.find(x => x.id === Number(params.id));
+    return a ? HttpResponse.json({ code: 200, message: 'success', data: { ...a, pageCount: pages.filter(p => p.appId === a.id).length }, timestamp: Date.now() })
+      : HttpResponse.json({ code: 3001, message: '应用不存在', data: null, timestamp: Date.now() }, { status: 404 });
+  }),
+  http.delete(`${BASE}/setup/apps/:id`, ({ params }) => {
+    const idx = apps.findIndex(x => x.id === Number(params.id));
+    if (idx === -1) return HttpResponse.json({ code: 3001, message: '应用不存在', data: null, timestamp: Date.now() }, { status: 404 });
+    apps.splice(idx, 1); return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
   }),
 
-  http.get(`${BASE}/events/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const event = eventsStore.find((e) => e.id === id);
-    if (!event) {
-      return HttpResponse.json({ code: 3001, message: '事件不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    return HttpResponse.json({ code: 200, message: 'success', data: event, timestamp: Date.now() });
+  // Setup: Pages
+  http.get(`${BASE}/setup/apps/:appId/pages`, ({ params }) => {
+    const list = pages.filter(p => p.appId === Number(params.appId)).map(p => ({ ...p, blockCount: blocks.filter(b => b.pageId === p.id).length }));
+    return HttpResponse.json({ code: 200, message: 'success', data: list, timestamp: Date.now() });
+  }),
+  http.post(`${BASE}/setup/apps/:appId/pages`, async ({ params, request }) => {
+    const body = await request.json() as { pageName: string; pageCode: string };
+    const app = apps.find(a => a.id === Number(params.appId));
+    const p: PageItem = { id: pageId++, appId: Number(params.appId), appCode: app!.appCode, pageCode: body.pageCode, pageName: body.pageName, createdAt: new Date().toISOString() };
+    pages.push(p);
+    return HttpResponse.json({ code: 200, message: 'success', data: { ...p, blockCount: 0 }, timestamp: Date.now() }, { status: 201 });
+  }),
+  http.delete(`${BASE}/setup/pages/:id`, ({ params }) => {
+    const idx = pages.findIndex(x => x.id === Number(params.id));
+    if (idx === -1) return HttpResponse.json({ code: 3002, message: '页面不存在', data: null, timestamp: Date.now() }, { status: 404 });
+    pages.splice(idx, 1); return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
   }),
 
-  http.post(`${BASE}/events`, async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    if (!body.eventKey || !body.eventName) {
-      return HttpResponse.json({ code: 1001, message: '事件标识和名称不能为空', data: null, timestamp: Date.now() }, { status: 400 });
-    }
-    const duplicate = eventsStore.find((e) => e.eventKey === body.eventKey);
-    if (duplicate) {
-      return HttpResponse.json({ code: 2001, message: '事件标识重复', data: null, timestamp: Date.now() }, { status: 400 });
-    }
-    const newEvent = {
-      id: nextEventId++,
-      eventKey: body.eventKey as string,
-      eventName: body.eventName as string,
-      description: (body.description as string) || '',
-      category: (body.category as 'page_view' | 'click' | 'exposure' | 'custom') || 'custom',
-      status: (body.status as number) ?? 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    eventsStore.unshift(newEvent);
-    return HttpResponse.json({ code: 200, message: 'success', data: newEvent, timestamp: Date.now() }, { status: 201 });
+  // Setup: Blocks
+  http.get(`${BASE}/setup/pages/:pageId/blocks`, ({ params }) => {
+    const list = blocks.filter(b => b.pageId === Number(params.pageId)).map(b => ({ ...b, functionCount: functions.filter(f => f.blockId === b.id).length }));
+    return HttpResponse.json({ code: 200, message: 'success', data: list, timestamp: Date.now() });
+  }),
+  http.post(`${BASE}/setup/pages/:pageId/blocks`, async ({ params, request }) => {
+    const body = await request.json() as { blockName: string; blockCode: string };
+    const p: BlockItem = { id: blockId++, pageId: Number(params.pageId), blockCode: body.blockCode, blockName: body.blockName, createdAt: new Date().toISOString() };
+    blocks.push(p);
+    return HttpResponse.json({ code: 200, message: 'success', data: { ...p, functionCount: 0 }, timestamp: Date.now() }, { status: 201 });
+  }),
+  http.delete(`${BASE}/setup/blocks/:id`, ({ params }) => {
+    const idx = blocks.findIndex(x => x.id === Number(params.id));
+    if (idx === -1) return HttpResponse.json({ code: 3003, message: '区块不存在', data: null, timestamp: Date.now() }, { status: 404 });
+    blocks.splice(idx, 1); return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
   }),
 
-  http.put(`${BASE}/events/:id`, async ({ request, params }) => {
-    const id = Number(params.id);
-    const idx = eventsStore.findIndex((e) => e.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3001, message: '事件不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    const body = await request.json() as Record<string, unknown>;
-    eventsStore[idx] = {
-      ...eventsStore[idx],
-      ...(body.eventName !== undefined && { eventName: body.eventName as string }),
-      ...(body.description !== undefined && { description: body.description as string }),
-      ...(body.category !== undefined && { category: body.category as 'page_view' | 'click' | 'exposure' | 'custom' }),
-      ...(body.status !== undefined && { status: body.status as number }),
-      updatedAt: new Date().toISOString(),
-    };
-    return HttpResponse.json({ code: 200, message: 'success', data: eventsStore[idx], timestamp: Date.now() });
+  // Setup: Functions
+  http.get(`${BASE}/setup/blocks/:blockId/functions`, ({ params }) => {
+    const list = functions.filter(f => f.blockId === Number(params.blockId));
+    return HttpResponse.json({ code: 200, message: 'success', data: list, timestamp: Date.now() });
+  }),
+  http.post(`${BASE}/setup/blocks/:blockId/functions`, async ({ params, request }) => {
+    const body = await request.json() as { funcName: string; funcCode: string };
+    const f: FuncItem = { id: funcId++, blockId: Number(params.blockId), funcCode: body.funcCode, funcName: body.funcName, createdAt: new Date().toISOString() };
+    functions.push(f);
+    return HttpResponse.json({ code: 200, message: 'success', data: f, timestamp: Date.now() }, { status: 201 });
+  }),
+  http.delete(`${BASE}/setup/functions/:id`, ({ params }) => {
+    const idx = functions.findIndex(x => x.id === Number(params.id));
+    if (idx === -1) return HttpResponse.json({ code: 3004, message: '功能不存在', data: null, timestamp: Date.now() }, { status: 404 });
+    functions.splice(idx, 1); return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
   }),
 
-  http.delete(`${BASE}/events/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const idx = eventsStore.findIndex((e) => e.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3001, message: '事件不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    eventsStore.splice(idx, 1);
-    return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
+  // ============ Analysis: Apps ============
+  http.post(`${BASE}/analysis/apps`, () => {
+    const list = apps.map(a => ({
+      appCode: a.appCode, appName: a.appName,
+      dau: r(500000) + 10000, totalPv: r(2000000) + 100000,
+      pageCount: pages.filter(p => p.appId === a.id).length,
+    }));
+    return HttpResponse.json({ code: 200, message: 'success', data: list, timestamp: Date.now() });
   }),
 
-  // ==================== Property CRUD ====================
-  http.get(`${BASE}/events/:id/properties`, ({ params }) => {
-    const eventId = Number(params.id);
-    const props = getPropertiesByEventId(eventId);
-    return HttpResponse.json({ code: 200, message: 'success', data: props, timestamp: Date.now() });
-  }),
-
-  http.post(`${BASE}/properties`, async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const event = eventsStore.find((e) => e.id === body.eventId);
-    const newProp = {
-      id: nextPropId++,
-      eventId: body.eventId as number,
-      eventName: event?.eventName || '',
-      propKey: body.propKey as string,
-      propName: body.propName as string,
-      dataType: (body.dataType as 'string' | 'number' | 'boolean' | 'date') || 'string',
-      description: (body.description as string) || '',
-      createdAt: new Date().toISOString(),
-    };
-    propertiesStore.push(newProp);
-    return HttpResponse.json({ code: 200, message: 'success', data: newProp, timestamp: Date.now() }, { status: 201 });
-  }),
-
-  http.delete(`${BASE}/properties/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const idx = propertiesStore.findIndex((p) => p.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3002, message: '属性不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    propertiesStore.splice(idx, 1);
-    return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
-  }),
-
-  // ==================== SPM CRUD ====================
-  http.get(`${BASE}/spm`, ({ request }) => {
-    const url = new URL(request.url);
-    const page = Number(url.searchParams.get('page') || 1);
-    const size = Number(url.searchParams.get('size') || 20);
-    const keyword = url.searchParams.get('keyword') || '';
-
-    let filtered = [...spmsStore];
-    if (keyword) {
-      const kw = keyword.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.spmCode.toLowerCase().includes(kw) ||
-          s.spmName.toLowerCase().includes(kw),
-      );
-    }
-
-    const result = paginate(filtered, page, size);
-    return HttpResponse.json({ code: 200, message: 'success', data: result, timestamp: Date.now() });
-  }),
-
-  http.post(`${BASE}/spm`, async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    if (!body.spmCode || !body.spmName) {
-      return HttpResponse.json({ code: 1001, message: 'SPM编码和名称不能为空', data: null, timestamp: Date.now() }, { status: 400 });
-    }
-    const duplicate = spmsStore.find((s) => s.spmCode === body.spmCode);
-    if (duplicate) {
-      return HttpResponse.json({ code: 2002, message: 'SPM编码重复', data: null, timestamp: Date.now() }, { status: 400 });
-    }
-    const newSpm = {
-      id: nextSpmId++,
-      spmCode: body.spmCode as string,
-      spmName: body.spmName as string,
-      spmaLabel: (body.spmaLabel as string) || '',
-      spmbLabel: (body.spmbLabel as string) || '',
-      spmcLabel: (body.spmcLabel as string) || '',
-      spmdLabel: (body.spmdLabel as string) || '',
-      description: (body.description as string) || '',
-      createdAt: new Date().toISOString(),
-    };
-    spmsStore.unshift(newSpm);
-    return HttpResponse.json({ code: 200, message: 'success', data: newSpm, timestamp: Date.now() }, { status: 201 });
-  }),
-
-  http.put(`${BASE}/spm/:id`, async ({ request, params }) => {
-    const id = Number(params.id);
-    const idx = spmsStore.findIndex((s) => s.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3003, message: 'SPM不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    const body = await request.json() as Record<string, unknown>;
-    spmsStore[idx] = {
-      ...spmsStore[idx],
-      ...(body.spmName !== undefined && { spmName: body.spmName as string }),
-      ...(body.spmaLabel !== undefined && { spmaLabel: body.spmaLabel as string }),
-      ...(body.spmbLabel !== undefined && { spmbLabel: body.spmbLabel as string }),
-      ...(body.spmcLabel !== undefined && { spmcLabel: body.spmcLabel as string }),
-      ...(body.spmdLabel !== undefined && { spmdLabel: body.spmdLabel as string }),
-      ...(body.description !== undefined && { description: body.description as string }),
-    };
-    return HttpResponse.json({ code: 200, message: 'success', data: spmsStore[idx], timestamp: Date.now() });
-  }),
-
-  http.delete(`${BASE}/spm/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const idx = spmsStore.findIndex((s) => s.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3003, message: 'SPM不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    spmsStore.splice(idx, 1);
-    return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
-  }),
-
-  // ==================== Dashboard CRUD ====================
-  http.get(`${BASE}/dashboards`, ({ request }) => {
-    const url = new URL(request.url);
-    const page = Number(url.searchParams.get('page') || 1);
-    const size = Number(url.searchParams.get('size') || 20);
-    const result = paginate([...dashboardsStore], page, size);
-    return HttpResponse.json({ code: 200, message: 'success', data: result, timestamp: Date.now() });
-  }),
-
-  http.get(`${BASE}/dashboards/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const dashboard = dashboardsStore.find((d) => d.id === id);
-    if (!dashboard) {
-      return HttpResponse.json({ code: 3004, message: '看板不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    return HttpResponse.json({ code: 200, message: 'success', data: dashboard, timestamp: Date.now() });
-  }),
-
-  http.post(`${BASE}/dashboards`, async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const newDashboard = {
-      id: nextDashId++,
-      name: body.name as string,
-      config: body.config as never,
-      createdBy: 'admin',
-      status: (body.status as number) ?? 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    dashboardsStore.unshift(newDashboard);
-    return HttpResponse.json({ code: 200, message: 'success', data: newDashboard, timestamp: Date.now() }, { status: 201 });
-  }),
-
-  http.put(`${BASE}/dashboards/:id`, async ({ request, params }) => {
-    const id = Number(params.id);
-    const idx = dashboardsStore.findIndex((d) => d.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3004, message: '看板不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    const body = await request.json() as Record<string, unknown>;
-    dashboardsStore[idx] = {
-      ...dashboardsStore[idx],
-      ...(body.name !== undefined && { name: body.name as string }),
-      ...(body.config !== undefined && { config: body.config as never }),
-      ...(body.status !== undefined && { status: body.status as number }),
-      updatedAt: new Date().toISOString(),
-    };
-    return HttpResponse.json({ code: 200, message: 'success', data: dashboardsStore[idx], timestamp: Date.now() });
-  }),
-
-  http.delete(`${BASE}/dashboards/:id`, ({ params }) => {
-    const id = Number(params.id);
-    const idx = dashboardsStore.findIndex((d) => d.id === id);
-    if (idx === -1) {
-      return HttpResponse.json({ code: 3004, message: '看板不存在', data: null, timestamp: Date.now() }, { status: 404 });
-    }
-    dashboardsStore.splice(idx, 1);
-    return HttpResponse.json({ code: 200, message: 'success', data: null, timestamp: Date.now() });
-  }),
-
-  // ==================== Analysis ====================
-  http.post(`${BASE}/analysis/events`, () => {
-    const data = generateMockAnalysis();
-    return HttpResponse.json({ code: 200, message: 'success', data, timestamp: Date.now() });
-  }),
-
-  http.post(`${BASE}/analysis/events/realtime`, () => {
-    const data = generateMockAnalysis();
-    return HttpResponse.json({ code: 200, message: 'success', data, timestamp: Date.now() });
-  }),
-
-  http.post(`${BASE}/analysis/session`, () => {
-    const days = 30;
-    const sessionData: { time: string; value: number }[] = [];
-    const durationData: { time: string; value: number }[] = [];
-    const now = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const timeStr = date.toISOString().split('T')[0];
-      sessionData.push({ time: timeStr, value: Math.round(8000 + Math.random() * 4000) });
-      durationData.push({ time: timeStr, value: Math.round(180 + Math.random() * 120) });
-    }
-    const totalSessions = sessionData.reduce((s, p) => s + p.value, 0);
-    const avgDur = Math.round(durationData.reduce((s, p) => s + p.value, 0) / days);
-
+  // Analysis: Pages (with trend)
+  http.post(`${BASE}/analysis/apps/:appCode/pages`, ({ params }) => {
+    const appPages = pages.filter(p => p.appCode === params.appCode);
+    const pm = appPages.map(p => ({
+      pageCode: p.pageCode, pageName: p.pageName,
+      pv: r(800000) + 50000, uv: r(300000) + 20000,
+      avgStayDuration: 15 + r(120), bounceRate: (20 + r(30)) / 100,
+      blockCount: blocks.filter(b => b.pageId === p.id).length,
+    }));
+    const totalPv = pm.reduce((s, x) => s + x.pv, 0);
+    const trend = genTrend(30);
     return HttpResponse.json({
       code: 200, message: 'success',
-      data: {
-        interval: 'day',
-        series: [
-          { name: '会话次数', groupValue: 'total', data: sessionData },
-          { name: '平均时长(秒)', groupValue: 'total', data: durationData },
-        ],
-        summary: {
-          sessionCount: totalSessions,
-          userCount: Math.round(totalSessions * 0.6),
-          avgDuration: avgDur,
-          avgPageDepth: 3.5,
-          bounceCount: Math.round(totalSessions * 0.35),
-          bounceRate: 0.35,
-        },
-      },
+      data: { trend, summary: { totalPv, totalUv: Math.floor(totalPv * 0.4), avgStay: 45 + r(30), bounceRate: (25 + r(20)) / 100 }, pages: pm },
       timestamp: Date.now(),
     });
+  }),
+
+  // Analysis: Blocks (with trend)
+  http.post(`${BASE}/analysis/apps/:appCode/pages/:pageCode/blocks`, ({ params }) => {
+    const page = pages.find(p => p.pageCode === `${params.appCode}.${params.pageCode}`);
+    if (!page) return HttpResponse.json({ code: 3002, message: '页面不存在', data: null, timestamp: Date.now() }, { status: 404 });
+    const pageBlocks = blocks.filter(b => b.pageId === page.id);
+    const bm = pageBlocks.map((b, i) => {
+      const hasClick = i < 2;
+      return {
+        blockCode: b.blockCode, blockName: b.blockName,
+        exposurePv: r(400000) + 50000, exposureUv: r(200000) + 30000,
+        clickPv: hasClick ? r(80000) + 10000 : 0,
+        clickUv: hasClick ? r(50000) + 5000 : 0,
+        ctr: hasClick ? (5 + r(20)) / 100 : 0,
+        functionCount: r(5) + 1,
+      };
+    });
+    const totalExp = bm.reduce((s, x) => s + x.exposurePv, 0);
+    const trend = genTrend(30);
+    return HttpResponse.json({
+      code: 200, message: 'success',
+      data: { trend, summary: { totalExposurePv: totalExp, totalExposureUv: Math.floor(totalExp * 0.5), blockCount: bm.length }, blocks: bm },
+      timestamp: Date.now(),
+    });
+  }),
+
+  // Analysis: Functions (with trend)
+  http.post(`${BASE}/analysis/apps/:appCode/pages/:pageCode/blocks/:blockCode/functions`, () => {
+    const fm = Array.from({ length: r(5) + 1 }, (_, i) => {
+      const hasClick = i < 2, expPv = r(150000) + 20000;
+      return {
+        funcCode: `d_func_${i}`, funcName: `功能点位 ${i + 1}`,
+        exposurePv: expPv, exposureUv: Math.floor(expPv * 0.5),
+        clickPv: hasClick ? r(50000) + 5000 : 0,
+        clickUv: hasClick ? r(20000) + 3000 : 0,
+        ctr: hasClick ? (10 + r(15)) / 100 : 0,
+        penetrationRate: (20 + r(30)) / 100,
+      };
+    });
+    const totalExp = fm.reduce((s, x) => s + x.exposurePv, 0);
+    const trend = genTrend(30);
+    return HttpResponse.json({
+      code: 200, message: 'success',
+      data: { trend, summary: { totalExposurePv: totalExp, totalExposureUv: Math.floor(totalExp * 0.5), functionCount: fm.length }, functions: fm },
+      timestamp: Date.now(),
+    });
+  }),
+
+  // Analysis: Trend Detail
+  http.post(`${BASE}/analysis/trend-detail`, async ({ request }) => {
+    const body = await request.json() as { days: number };
+    const detail = genDayDetail(body.days || 7);
+    return HttpResponse.json({ code: 200, message: 'success', data: { detail }, timestamp: Date.now() });
   }),
 ];

@@ -1,33 +1,35 @@
-/** SPM view object (response) */
-export interface SpmVO {
+export interface SpmApp {
   id: number;
-  spmCode: string;
-  spmName: string;
-  spmaLabel: string;
-  spmbLabel: string;
-  spmcLabel: string;
-  spmdLabel: string;
+  appCode: string;
+  appName: string;
   description: string;
+  pageCount: number;
   createdAt: string;
 }
 
-/** Create SPM request */
-export interface CreateSpmRequest {
-  spmCode: string;
-  spmName: string;
-  spmaLabel?: string;
-  spmbLabel?: string;
-  spmcLabel?: string;
-  spmdLabel?: string;
-  description?: string;
+export interface SpmPage {
+  id: number;
+  appId: number;
+  appCode: string;
+  pageCode: string;
+  pageName: string;
+  blockCount: number;
+  createdAt: string;
 }
 
-/** Update SPM request */
-export interface UpdateSpmRequest {
-  spmName?: string;
-  spmaLabel?: string;
-  spmbLabel?: string;
-  spmcLabel?: string;
-  spmdLabel?: string;
-  description?: string;
+export interface SpmBlock {
+  id: number;
+  pageId: number;
+  blockCode: string;
+  blockName: string;
+  functionCount: number;
+  createdAt: string;
+}
+
+export interface SpmFunction {
+  id: number;
+  blockId: number;
+  funcCode: string;
+  funcName: string;
+  createdAt: string;
 }

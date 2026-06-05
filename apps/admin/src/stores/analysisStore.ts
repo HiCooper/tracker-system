@@ -1,43 +1,84 @@
 import { create } from 'zustand';
 import { analysisApi } from '../services/analysisApi';
-import type { EventAnalysisRequest, EventAnalysisResponse } from '../types/analysis';
+import type { AppMetric, PageMetric, BlockMetric, FunctionMetric, TrendPoint, DayData } from '../types/analysis';
+import dayjs from 'dayjs';
 
 interface AnalysisState {
-  queryParams: EventAnalysisRequest;
-  result: EventAnalysisResponse | null;
+  // App level
+  appMetrics: AppMetric[];
+
+  // Page level
+  pageTrend: TrendPoint[];
+  pageSummary: Record<string, number> | null;
+  pageMetrics: PageMetric[];
+
+  // Block level
+  blockTrend: TrendPoint[];
+  blockSummary: Record<string, number> | null;
+  blockMetrics: BlockMetric[];
+
+  // Function level
+  funcTrend: TrendPoint[];
+  funcSummary: Record<string, number> | null;
+  functionMetrics: FunctionMetric[];
+
+  // Trend detail
+  dayDetail: DayData[];
+
   loading: boolean;
-  chartType: 'line' | 'bar';
-  setChartType: (t: 'line' | 'bar') => void;
-  setQueryParams: (params: Partial<EventAnalysisRequest>) => void;
-  execute: () => Promise<void>;
+  timeRange: { startTime: string; endTime: string };
+
+  setTimeRange: (r: { startTime: string; endTime: string }) => void;
+  fetchAppMetrics: () => Promise<void>;
+  fetchPageMetrics: (appCode: string) => Promise<void>;
+  fetchBlockMetrics: (appCode: string, pageCode: string) => Promise<void>;
+  fetchFunctionMetrics: (appCode: string, pageCode: string, blockCode: string) => Promise<void>;
+  fetchTrendDetail: (code: string, days: number) => Promise<void>;
 }
 
+const defaultRange = () => ({
+  startTime: dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
+  endTime: dayjs().format('YYYY-MM-DD'),
+});
+
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
-  queryParams: {
-    eventTypes: [],
-    startTime: '',
-    endTime: '',
-    interval: 'day',
-    groupBy: ['event_type'],
-  },
-  result: null,
+  appMetrics: [],
+  pageTrend: [], pageSummary: null, pageMetrics: [],
+  blockTrend: [], blockSummary: null, blockMetrics: [],
+  funcTrend: [], funcSummary: null, functionMetrics: [],
+  dayDetail: [],
   loading: false,
-  chartType: 'line',
+  timeRange: defaultRange(),
 
-  setChartType: (chartType) => set({ chartType }),
+  setTimeRange: (r) => set({ timeRange: r }),
 
-  setQueryParams: (params) => {
-    set((s) => ({ queryParams: { ...s.queryParams, ...params } }));
+  fetchAppMetrics: async () => {
+    set({ loading: true });
+    const data = await analysisApi.getAppMetrics(get().timeRange);
+    set({ appMetrics: data, loading: false });
   },
 
-  execute: async () => {
-    const { queryParams } = get();
+  fetchPageMetrics: async (appCode) => {
     set({ loading: true });
-    try {
-      const data = await analysisApi.analyzeEvents(queryParams);
-      set({ result: data, loading: false });
-    } catch {
-      set({ loading: false });
-    }
+    const data = await analysisApi.getPageMetrics(appCode, get().timeRange);
+    set({ pageTrend: data.trend, pageSummary: data.summary, pageMetrics: data.pages, loading: false });
+  },
+
+  fetchBlockMetrics: async (appCode, pageCode) => {
+    set({ loading: true });
+    const data = await analysisApi.getBlockMetrics(appCode, pageCode, get().timeRange);
+    set({ blockTrend: data.trend, blockSummary: data.summary, blockMetrics: data.blocks, loading: false });
+  },
+
+  fetchFunctionMetrics: async (appCode, pageCode, blockCode) => {
+    set({ loading: true });
+    const data = await analysisApi.getFunctionMetrics(appCode, pageCode, blockCode, get().timeRange);
+    set({ funcTrend: data.trend, funcSummary: data.summary, functionMetrics: data.functions, loading: false });
+  },
+
+  fetchTrendDetail: async (_code, days) => {
+    set({ loading: true });
+    const data = await analysisApi.getTrendDetail(_code, { days });
+    set({ dayDetail: data.detail, loading: false });
   },
 }));
