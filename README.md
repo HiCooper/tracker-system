@@ -131,6 +131,26 @@ git submodule update --init --recursive
 | **路径分析** | 页面序列、关键节点 | 会话级序列聚合 |
 | **归因分析** | 渠道贡献、首次/末次触点 | UTM 参数 · 时间窗口 |
 
+## 管理后台
+
+基于 React + TypeScript + Ant Design 5 构建的埋点管理与流量分析平台。
+
+### 埋点管理 — SPM 元数据逐级创建
+
+![应用列表](docs/images/admin-setup-apps.png)
+
+![页面列表](docs/images/admin-setup-pages.png)
+
+### 流量分析 — 层层下钻
+
+![应用概览](docs/images/admin-analysis-apps.png)
+
+![页面分析](docs/images/admin-analysis-pages.png)
+
+![区块分析](docs/images/admin-analysis-blocks.png)
+
+![功能分析 + 趋势详情](docs/images/admin-analysis-functions.png)
+
 ## License
 
 Private — GateFlow internal project.
