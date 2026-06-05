@@ -4,7 +4,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 export default withMermaid(defineConfig({
   title: 'Tracker System',
   description: '埋点分析数据采集平台文档',
-  base: '/',
+  base: process.env.BASE_PATH || '/',
   lang: 'zh-CN',
 
   head: [
