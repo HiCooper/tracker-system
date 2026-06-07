@@ -1,0 +1,95 @@
+# GateFlow Tracker System — 完整本地开发环境
+# 启动: docker compose up -d
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tracker-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: tracker123
+      MYSQL_DATABASE: tracker_admin
+    ports: ["3306:3306"]
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: tracker-clickhouse
+    environment:
+      CLICKHOUSE_DB: gateflow_tracker
+    ports: ["8123:8123", "9000:9000"]
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: tracker-redis
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: tracker-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports: ["9092:9092"]
+    volumes: [kafka_data:/bitnami/kafka]
+
+  tracker-admin:
+    build:
+      context: ./backend/tracker-admin
+    container_name: tracker-admin
+    ports: ["8080:8080"]
+    environment:
+      TRACKER_DB_URL: jdbc:mysql://mysql:3306/tracker_admin?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      TRACKER_DB_USER: root
+      TRACKER_DB_PASSWORD: tracker123
+      CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123
+      REDIS_HOST: redis
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+  tracker-service:
+    build:
+      context: ./backend/tracker-service
+    container_name: tracker-service
+    ports: ["8081:8081"]
+    environment:
+      CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+
+volumes:
+  mysql_data:
+  clickhouse_data:
+  redis_data:
+  kafka_data:
