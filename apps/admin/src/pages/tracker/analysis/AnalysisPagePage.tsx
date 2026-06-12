@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Spin, Statistic, Breadcrumb, Table } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { useAnalysisStore } from '../../../stores/analysisStore';
 import { TrendChart } from '../../../components/charts/TrendChart';
@@ -14,8 +14,6 @@ const { RangePicker } = DatePicker;
 export function AnalysisPagePage() {
   const { appCode } = useParams<{ appCode: string }>();
   const { pageMetrics, pageSummary, pageTrend, loading, timeRange, setTimeRange, fetchPageMetrics } = useAnalysisStore();
-  const navigate = useNavigate();
-
   useEffect(() => { if (appCode) fetchPageMetrics(appCode); }, [appCode, timeRange]);
 
   const fmt = (v: number) => v >= 10000 ? `${(v / 10000).toFixed(1)}万` : v?.toLocaleString();
@@ -26,7 +24,7 @@ export function AnalysisPagePage() {
       render: (name: string, r) => {
         const parts = r.pageCode.split('.');
         const pc = parts.slice(1).join('.');
-        return <a onClick={() => navigate(`/tracker/analysis/${appCode}/${pc}`)} style={{ color: '#1677ff', cursor: 'pointer' }}>{name}({r.pageCode})</a>;
+        return <Link to={`/tracker/analysis/${appCode}/${pc}`}>{name}({r.pageCode})</Link>;
       },
     },
     { title: 'PV', dataIndex: 'pv', key: 'pv', width: 100, render: (v: number) => fmt(v) },

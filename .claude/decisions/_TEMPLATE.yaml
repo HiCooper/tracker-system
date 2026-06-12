@@ -1,0 +1,17 @@
+# 决策记录模板
+# Agent 在做出架构选择、技术选型、trade-off 决策时填写
+# 文件命名: D-YYYYMMDD-NNN-<topic-slug>.yaml
+
+id: "D-YYYYMMDD-NNN"                              # 必填
+timestamp: "YYYY-MM-DDTHH:MM:SS"                  # 必填，ISO 8601
+topic: ""                                         # 必填，一句话主题
+context: ""                                       # 必填，为什么需要这个决策
+chosen: ""                                        # 必填，选择的方案
+rejected:                                         # 必填，考虑过但拒绝的方案
+  - ""
+rationale: ""                                     # 必填，选择理由
+constraints_ref:                                  # 可选，引用的约束条目
+  - ""
+impact:                                           # 必填
+  files: []
+  risk: "low"                                     # low | medium | high

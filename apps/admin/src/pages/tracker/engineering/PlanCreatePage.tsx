@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Button, Typography, Breadcrumb, Space, Divider, message, Collapse } from 'antd';
 import { HomeOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { usePlanStore } from '../../../stores/planStore';
+import { useSetupStore } from '../../../stores/setupStore';
 import type { PlanEvent, PlanProperty } from '../../../types/trackingPlan';
 
 const { Title } = Typography;
@@ -35,6 +36,9 @@ export function PlanCreatePage() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const { createPlan, updatePlan, submitForReview } = usePlanStore();
+  const { apps, fetchApps } = useSetupStore();
+
+  useEffect(() => { fetchApps(); }, []);
 
   const [form] = Form.useForm();
   const [events, setEvents] = useState<PlanEvent[]>([emptyEvent()]);
@@ -110,7 +114,7 @@ export function PlanCreatePage() {
             <Input placeholder="e.g. v2.3.0 支付流程埋点" style={{ width: 260 }} />
           </Form.Item>
           <Form.Item name="appId" label="应用" rules={[{ required: true }]}>
-            <Select style={{ width: 160 }} options={[{ label: '主站应用', value: 1 }, { label: '商家后台', value: 2 }]} />
+            <Select style={{ width: 160 }} options={apps.map(a => ({ label: a.appName, value: a.id }))} />
           </Form.Item>
           <Form.Item name="appVersion" label="版本号" rules={[{ required: true, message: '请输入版本号' }]}>
             <Input placeholder="e.g. 2.3.0" style={{ width: 120 }} />

@@ -1,0 +1,81 @@
+# GateFlow SDK 合并方案
+
+> 决策 ID: D-20260608-002 | 日期: 2026-06-08 | 优先级: P0
+
+## 问题
+
+当前存在两个独立的 Browser SDK，功能分裂、各自维护：
+
+| 维度 | `tracker-sdk/` (TS) | `public/tracker-sdk.js` (JS) |
+|------|---------------------|-------------------------------|
+| 语言 | TypeScript, modular | IIFE, monolithic |
+| 测试 | ✅ vitest (3 test files) | ❌ 无测试 |
+| 分发 | npm package | `<script>` 标签 |
+| 全埋点 | ❌ 未实现 | ✅ View Path 自动发现 |
+| DevTools | ✅ EventValidator 面板 | ❌ 无 |
+| Collectors | 7 个 module collectors | 内联函数 |
+
+## 方案选择
+
+**Chosen: 以 `tracker-sdk/` (TS) 为基础合并，Vite library mode 多格式输出**
+
+```
+tracker-sdk/
+├── src/
+│   ├── index.ts                    # 入口，导出工厂函数
+│   ├── tracker/
+│   │   └── Tracker.ts              # 核心 Tracker 类
+│   ├── collectors/                 # 8 个 collector
+│   │   ├── PageCollector.ts
+│   │   ├── ClickCollector.ts
+│   │   ├── ExposureCollector.ts
+│   │   ├── ScrollCollector.ts
+│   │   ├── ErrorCollector.ts
+│   │   ├── StayCollector.ts
+│   │   ├── SessionCollector.ts
+│   │   └── AutoTrackCollector.ts   # 从 tracker-sdk.js 移植
+│   ├── queue/EventQueue.ts
+│   ├── sender/Sender.ts
+│   ├── devtools/
+│   └── types/EventTypes.ts
+├── __tests__/
+├── vite.config.ts                  # 增加 library mode 配置
+└── dist/                           # 构建输出
+    ├── gateflow-tracker.es.js      # ESM
+    ├── gateflow-tracker.umd.js     # UMD
+    └── gateflow-tracker.iife.js    # IIFE（即插即用）
+```
+
+## 迁移步骤
+
+### Phase 1: 功能移植（1 天）
+- 从 `tracker-sdk.js` 移植全埋点逻辑 → `AutoTrackCollector.ts`
+- `buildViewPath()` — 生成 View Path
+- `hashString()` — 8 位 hex hash
+- `setupFullAutoTrack()` — 自动点击/输入/滚动捕获
+- `data-gf-auto="false"` 排除支持
+- 在 `Tracker.ts` 中注册 `AutoTrackCollector`
+
+### Phase 2: 测试覆盖（0.5 天）
+- `AutoTrackCollector.test.ts` — View Path/hash/排除逻辑
+- 确保已有 3 个 test 文件仍然通过
+
+### Phase 3: 构建与替换（0.5 天）
+- `vite build` 产出 3 种格式
+- IIFE 放入 `apps/admin/public/` 替代 `tracker-sdk.js`
+- 更新 `tracker-demo.html`
+
+### Phase 4: 清理（0.5 天）
+- 删除 `public/tracker-sdk.js`
+- docs 更新
+
+## 被拒绝的方案
+
+1. **保留两个 SDK 同步** — 维护成本高，功能分歧持续
+2. **以 JS SDK 重写 TS** — 架构不如现有 TS SDK（模块化低，无测试）
+3. **引入第三方 SDK** — SPM 是 GateFlow 核心差异，不可外包
+
+## 影响
+
+- risk: low — IIFE 输出完全兼容现有 script 标签接入
+- 旧 `<script src="/tracker-sdk.js">` → 新 `<script src="/gateflow-tracker.iife.js">`

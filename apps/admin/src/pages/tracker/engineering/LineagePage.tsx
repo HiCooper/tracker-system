@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Typography, Breadcrumb, Input, List, Tag, Spin, Empty } from 'antd';
+import { Card, Row, Col, Typography, Breadcrumb, Input, List, Tag, Spin, Empty, Select, Space } from 'antd';
 import { HomeOutlined, SearchOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { useLineageStore } from '../../../stores/lineageStore';
+import { useSetupStore } from '../../../stores/setupStore';
 import type { EventLineage, LineageRef } from '../../../types/lineage';
 
 const { Title, Text } = Typography;
@@ -19,13 +20,20 @@ const NODE_COLORS: Record<string, string> = {
 
 export function LineagePage() {
   const { events, currentLineage, currentGraph, loading, fetchEvents, selectEvent } = useLineageStore();
+  const { apps, fetchApps } = useSetupStore();
+
+  useEffect(() => { fetchApps(); }, []);
+
   const [search, setSearch] = useState('');
+  const [appFilter, setAppFilter] = useState('');
+
+  const filtered = events.filter((e) => {
+    const matchSearch = !search || e.eventKey.includes(search) || e.eventName.includes(search);
+    const matchApp = !appFilter || e.eventKey.startsWith(appFilter);
+    return matchSearch && matchApp;
+  });
 
   useEffect(() => { fetchEvents(); }, []);
-
-  const filtered = events.filter((e) =>
-    !search || e.eventKey.includes(search) || e.eventName.includes(search)
-  );
 
   const graphOption = currentGraph ? {
     tooltip: {
@@ -58,7 +66,12 @@ export function LineagePage() {
       <Row gutter={16}>
         <Col span={6}>
           <Card size="small" title="事件列表" extra={
-            <Input prefix={<SearchOutlined />} size="small" placeholder="搜索" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 120 }} />
+            <Space size="small">
+              <Select allowClear size="small" placeholder="应用" style={{ width: 100 }}
+                value={appFilter || undefined} onChange={(v) => setAppFilter(v || '')}
+                options={apps.map(a => ({ label: a.appCode, value: a.appCode }))} />
+              <Input prefix={<SearchOutlined />} size="small" placeholder="搜索" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 120 }} />
+            </Space>
           }>
             {loading ? <Spin /> : (
               <List size="small" dataSource={filtered} style={{ maxHeight: 560, overflow: 'auto' }}

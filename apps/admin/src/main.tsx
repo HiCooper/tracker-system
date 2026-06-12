@@ -6,13 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import 'antd/dist/reset.css';
 
-async function bootstrap() {
-  if (import.meta.env.VITE_ENABLE_MOCK === 'true') {
-    const { worker } = await import('./services/mock');
-    await worker.start({ onUnhandledRequest: 'bypass' });
-  }
-
-  ReactDOM.createRoot(document.getElementById('root')!).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ConfigProvider
         locale={zhCN}
@@ -25,7 +19,4 @@ async function bootstrap() {
         <RouterProvider router={router} />
       </ConfigProvider>
     </React.StrictMode>,
-  );
-}
-
-bootstrap();
+);

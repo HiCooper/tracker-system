@@ -1,49 +1,97 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
+import { Spin } from 'antd';
 import { AdminLayout } from './layouts/AdminLayout';
-import { AppListPage } from './pages/tracker/setup/AppListPage';
-import { PageListPage } from './pages/tracker/setup/PageListPage';
-import { BlockListPage } from './pages/tracker/setup/BlockListPage';
-import { FunctionListPage } from './pages/tracker/setup/FunctionListPage';
-import { AnalysisAppPage } from './pages/tracker/analysis/AnalysisAppPage';
-import { AnalysisPagePage } from './pages/tracker/analysis/AnalysisPagePage';
-import { AnalysisBlockPage } from './pages/tracker/analysis/AnalysisBlockPage';
-import { AnalysisFunctionPage } from './pages/tracker/analysis/AnalysisFunctionPage';
-import { FunnelAnalysisPage } from './pages/tracker/advanced/FunnelAnalysisPage';
-import { RetentionAnalysisPage } from './pages/tracker/advanced/RetentionAnalysisPage';
-import { PathAnalysisPage } from './pages/tracker/advanced/PathAnalysisPage';
-import { PlanListPage } from './pages/tracker/engineering/PlanListPage';
-import { PlanCreatePage } from './pages/tracker/engineering/PlanCreatePage';
-import { PlanDetailPage } from './pages/tracker/engineering/PlanDetailPage';
-import { LineagePage } from './pages/tracker/engineering/LineagePage';
-import { DebugPage } from './pages/tracker/engineering/DebugPage';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { LoginPage } from './pages/LoginPage';
+
+// Route-level lazy loading — splits bundle per page group
+// Named-exports are wrapped via `.then()` to satisfy React.lazy's default-export requirement
+const AppListPage = lazy(() => import('./pages/tracker/setup/AppListPage').then(m => ({ default: m.AppListPage })));
+const PageListPage = lazy(() => import('./pages/tracker/setup/PageListPage').then(m => ({ default: m.PageListPage })));
+const BlockListPage = lazy(() => import('./pages/tracker/setup/BlockListPage').then(m => ({ default: m.BlockListPage })));
+const FunctionListPage = lazy(() => import('./pages/tracker/setup/FunctionListPage').then(m => ({ default: m.FunctionListPage })));
+const AnalysisAppPage = lazy(() => import('./pages/tracker/analysis/AnalysisAppPage').then(m => ({ default: m.AnalysisAppPage })));
+const AnalysisPagePage = lazy(() => import('./pages/tracker/analysis/AnalysisPagePage').then(m => ({ default: m.AnalysisPagePage })));
+const AnalysisBlockPage = lazy(() => import('./pages/tracker/analysis/AnalysisBlockPage').then(m => ({ default: m.AnalysisBlockPage })));
+const AnalysisFunctionPage = lazy(() => import('./pages/tracker/analysis/AnalysisFunctionPage').then(m => ({ default: m.AnalysisFunctionPage })));
+const PlanListPage = lazy(() => import('./pages/tracker/engineering/PlanListPage').then(m => ({ default: m.PlanListPage })));
+const PlanCreatePage = lazy(() => import('./pages/tracker/engineering/PlanCreatePage').then(m => ({ default: m.PlanCreatePage })));
+const PlanDetailPage = lazy(() => import('./pages/tracker/engineering/PlanDetailPage').then(m => ({ default: m.PlanDetailPage })));
+const LineagePage = lazy(() => import('./pages/tracker/engineering/LineagePage').then(m => ({ default: m.LineagePage })));
+const DebugPage = lazy(() => import('./pages/tracker/engineering/DebugPage').then(m => ({ default: m.DebugPage })));
+const AutoTrackPage = lazy(() => import('./pages/tracker/engineering/AutoTrackPage').then(m => ({ default: m.AutoTrackPage })));
+const VerifyPage = lazy(() => import('./pages/tracker/engineering/VerifyPage').then(m => ({ default: m.VerifyPage })));
+const HealthMonitorPage = lazy(() => import('./pages/tracker/HealthMonitorPage').then(m => ({ default: m.HealthMonitorPage })));
+const PlatformDataPage = lazy(() => import('./pages/tracker/data-platform/PlatformDataPage').then(m => ({ default: m.PlatformDataPage })));
+const PortraitInsightPage = lazy(() => import('./pages/tracker/portrait/PortraitInsightPage').then(m => ({ default: m.PortraitInsightPage })));
+const BehaviorAnalysisPage = lazy(() => import('./pages/tracker/behavior/BehaviorAnalysisPage').then(m => ({ default: m.BehaviorAnalysisPage })));
+const ExperienceAnalysisPage = lazy(() => import('./pages/tracker/experience/ExperienceAnalysisPage').then(m => ({ default: m.ExperienceAnalysisPage })));
+const DashboardBuilderPage = lazy(() => import('./pages/tracker/bi/DashboardBuilderPage').then(m => ({ default: m.DashboardBuilderPage })));
+const CdpTagPage = lazy(() => import('./pages/tracker/cdp/CdpTagPage').then(m => ({ default: m.CdpTagPage })));
+
+function LazyPage({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spin size="large" /></div>}>
+      {children}
+    </Suspense>
+  );
+}
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const token = sessionStorage.getItem('gateflow_token');
+  const location = useLocation();
+
+  if (!token) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  return <>{children}</>;
+}
 
 export const router = createBrowserRouter([
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: '/',
-    element: <AdminLayout />,
+    element: (
+      <AuthGuard>
+        <ErrorBoundary>
+          <AdminLayout />
+        </ErrorBoundary>
+      </AuthGuard>
+    ),
     children: [
       { index: true, element: <Navigate to="/tracker/setup" replace /> },
       // SPM Setup
-      { path: 'tracker/setup', element: <AppListPage /> },
-      { path: 'tracker/setup/:appId', element: <PageListPage /> },
-      { path: 'tracker/setup/:appId/:pageId', element: <BlockListPage /> },
-      { path: 'tracker/setup/:appId/:pageId/:blockId', element: <FunctionListPage /> },
+      { path: 'tracker/setup', element: <LazyPage><AppListPage /></LazyPage> },
+      { path: 'tracker/setup/:appId', element: <LazyPage><PageListPage /></LazyPage> },
+      { path: 'tracker/setup/:appId/:pageId', element: <LazyPage><BlockListPage /></LazyPage> },
+      { path: 'tracker/setup/:appId/:pageId/:blockId', element: <LazyPage><FunctionListPage /></LazyPage> },
       // Analysis
-      { path: 'tracker/analysis', element: <AnalysisAppPage /> },
-      { path: 'tracker/analysis/:appCode', element: <AnalysisPagePage /> },
-      { path: 'tracker/analysis/:appCode/:pageCode', element: <AnalysisBlockPage /> },
-      { path: 'tracker/analysis/:appCode/:pageCode/:blockCode', element: <AnalysisFunctionPage /> },
-      // Advanced Analysis
-      { path: 'tracker/advanced/funnel', element: <FunnelAnalysisPage /> },
-      { path: 'tracker/advanced/retention', element: <RetentionAnalysisPage /> },
-      { path: 'tracker/advanced/path', element: <PathAnalysisPage /> },
+      { path: 'tracker/analysis', element: <LazyPage><AnalysisAppPage /></LazyPage> },
+      { path: 'tracker/analysis/:appCode', element: <LazyPage><AnalysisPagePage /></LazyPage> },
+      { path: 'tracker/analysis/:appCode/:pageCode', element: <LazyPage><AnalysisBlockPage /></LazyPage> },
+      { path: 'tracker/analysis/:appCode/:pageCode/:blockCode', element: <LazyPage><AnalysisFunctionPage /></LazyPage> },
+      // Data Analytics
+      { path: 'tracker/data-platform', element: <LazyPage><PlatformDataPage /></LazyPage> },
+      { path: 'tracker/portrait', element: <LazyPage><PortraitInsightPage /></LazyPage> },
+      { path: 'tracker/behavior', element: <LazyPage><BehaviorAnalysisPage /></LazyPage> },
+      { path: 'tracker/experience', element: <LazyPage><ExperienceAnalysisPage /></LazyPage> },
+      { path: 'tracker/bi', element: <LazyPage><DashboardBuilderPage /></LazyPage> },
+      { path: 'tracker/cdp', element: <LazyPage><CdpTagPage /></LazyPage> },
       // Engineering
-      { path: 'tracker/engineering/plans', element: <PlanListPage /> },
-      { path: 'tracker/engineering/plans/new', element: <PlanCreatePage /> },
-      { path: 'tracker/engineering/plans/:id', element: <PlanDetailPage /> },
-      { path: 'tracker/engineering/plans/:id/edit', element: <PlanCreatePage /> },
-      { path: 'tracker/engineering/lineage', element: <LineagePage /> },
-      { path: 'tracker/engineering/debug', element: <DebugPage /> },
+      { path: 'tracker/engineering/plans', element: <LazyPage><PlanListPage /></LazyPage> },
+      { path: 'tracker/engineering/plans/new', element: <LazyPage><PlanCreatePage /></LazyPage> },
+      { path: 'tracker/engineering/plans/:id', element: <LazyPage><PlanDetailPage /></LazyPage> },
+      { path: 'tracker/engineering/plans/:id/edit', element: <LazyPage><PlanCreatePage /></LazyPage> },
+      { path: 'tracker/engineering/lineage', element: <LazyPage><LineagePage /></LazyPage> },
+      { path: 'tracker/engineering/debug', element: <LazyPage><DebugPage /></LazyPage> },
+      { path: 'tracker/engineering/autotrack', element: <LazyPage><AutoTrackPage /></LazyPage> },
+      { path: 'tracker/engineering/verify', element: <LazyPage><VerifyPage /></LazyPage> },
+      // Monitoring
+      { path: 'tracker/monitor', element: <LazyPage><HealthMonitorPage /></LazyPage> },
     ],
   },
 ]);

@@ -1,0 +1,99 @@
+# ============================================================================
+# Definition of Done — 机器可执行的完成标准
+# ============================================================================
+# Agent 在启动时读取此文件，每次迭代后自检。
+# 全部通过 → 任务完成。未通过 → 继续迭代。卡住 → 升级人工。
+#
+# 字段说明:
+#   check: 验证命令，exit 0 = 通过，非 0 = 未通过
+#   mode:  all = 全部必须通过 | warn = 仅记录不阻塞
+#   auto_fix: true = Agent 可以尝试自动修复 | false = 修复需人工确认
+# ============================================================================
+
+version: 1
+project: tracker-system
+
+# ----------------------------------------------------------------------------
+# L1: 行为验收 — BDD 场景 / 集成测试，定义「系统应该做什么」
+# ----------------------------------------------------------------------------
+acceptance:
+  specs:
+    - "tests/acceptance/**/*.feature"
+  mode: all                                     # all | majority | critical-only
+  critical_scenarios: []                        # 即使 mode=majority，这些也必须过
+
+# ----------------------------------------------------------------------------
+# L2: 质量门禁 — 每次提交自动运行
+# ----------------------------------------------------------------------------
+quality:
+  coverage:
+    check: "npx jest --coverage --coverageThreshold={"global":{"lines":80,"branches":80,"functions":80,"statements":80}}"
+    mode: all
+    auto_fix: true
+
+  security:
+    check: "npx audit-ci --critical --high"
+    mode: all
+    auto_fix: false
+
+  types:
+    check: "npx tsc --noEmit"
+    mode: all
+    auto_fix: true
+
+  lint:
+    check: "npx eslint src/ --max-warnings 0"
+    mode: all
+    auto_fix: true
+
+  duplication:
+    check: "npx jscpd src/ --max-lines 5 --threshold 5"
+    mode: warn
+
+# ----------------------------------------------------------------------------
+# L3: 架构合规 — 引用 constraints.yaml，全部规则必须通过
+# ----------------------------------------------------------------------------
+architecture:
+  constraints_file: ".claude/constraints.yaml"
+  mode: all
+
+# ----------------------------------------------------------------------------
+# L4: 性能预算 — 数值可比较，CI 中运行
+# ----------------------------------------------------------------------------
+performance:
+  - name: "API 响应时间 P99 < 200ms"
+    check: "npx autocannon -d 10 -c 100 http://localhost:3000/api"
+    mode: warn
+  - name: "启动时间 < 3s"
+    check: "timeout 5 node dist/main.js --health-check 2>&1 | grep -q ready"
+    mode: warn
+
+# ----------------------------------------------------------------------------
+# L5: 文档 — API 文档 + 决策记录
+# ----------------------------------------------------------------------------
+documentation:
+  public_apis_documented:
+    check: "test -f docs/api.md && echo pass || echo fail"
+    mode: all
+  decisions_recorded:
+    check: "ls .claude/decisions/*.yaml 2>/dev/null | wc -l | xargs -I{} test {} -gt 0"
+    mode: warn
+
+# ----------------------------------------------------------------------------
+# 升级条件 — 何时停止自主迭代，请求人工决策
+# ----------------------------------------------------------------------------
+escalation:
+  max_iterations_without_progress: 5
+
+  max_token_budget: null
+
+  decisions_needing_human:
+    - new_dependency
+    - breaking_api_change
+    - database_schema_migration
+    - authentication_change
+    - infrastructure_change
+
+  ambiguous_requirements:
+    strategy: "propose_options"
+    max_options: 3

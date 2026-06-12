@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Statistic, Breadcrumb, Table, Button } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { useAnalysisStore } from '../../../stores/analysisStore';
 import { TrendChart } from '../../../components/charts/TrendChart';
@@ -15,8 +15,6 @@ const { RangePicker } = DatePicker;
 export function AnalysisBlockPage() {
   const { appCode, pageCode } = useParams<{ appCode: string; pageCode: string }>();
   const { blockMetrics, blockSummary, blockTrend, loading, timeRange, setTimeRange, fetchBlockMetrics } = useAnalysisStore();
-  const navigate = useNavigate();
-
   const [trendOpen, setTrendOpen] = useState(false);
   const [trendTitle, setTrendTitle] = useState('');
   const [trendSubtitle, setTrendSubtitle] = useState('');
@@ -33,7 +31,7 @@ export function AnalysisBlockPage() {
         const parts = r.blockCode.split('.');
         const pc = parts.slice(1, 2)[0];
         const bc = parts.slice(2).join('.');
-        return <a onClick={() => navigate(`/tracker/analysis/${appCode}/${pc}/${bc}`)} style={{ color: '#1677ff', cursor: 'pointer' }}>{name}({r.blockCode})</a>;
+        return <Link to={`/tracker/analysis/${appCode}/${pc}/${bc}`}>{name}({r.blockCode})</Link>;
       },
     },
     { title: '曝光PV', dataIndex: 'exposurePv', key: 'epv', width: 100, render: (v: number) => fmt(v) },

@@ -1,51 +1,99 @@
 import { create } from 'zustand';
-import type { DebugEvent, DebugEventStats } from '../types/debug';
+import type { DebugEvent } from '../types/debug';
+
+export type SessionStatus = 'idle' | 'creating' | 'waiting' | 'connected' | 'closed';
 
 interface DebugState {
+  sessionId: string | null;
+  sessionStatus: SessionStatus;
+  appCode: string;
   events: DebugEvent[];
   paused: boolean;
   connected: boolean;
-  filter: { eventType?: string; userId?: string };
+  ws: WebSocket | null;
 
+  setAppCode: (code: string) => void;
+  createSession: (appCode: string) => Promise<void>;
+  closeSession: () => void;
   addEvent: (event: DebugEvent) => void;
   clearEvents: () => void;
   setPaused: (p: boolean) => void;
-  setConnected: (c: boolean) => void;
-  setFilter: (f: { eventType?: string; userId?: string }) => void;
   getFilteredEvents: () => DebugEvent[];
-  getStats: () => DebugEventStats;
+  getStats: () => { total: number; byType: Record<string, number> };
 }
 
-let nextId = 1;
-
-export function generateMockEvent(overrides?: Partial<DebugEvent>): DebugEvent {
-  const types = ['page_view', 'click', 'exposure', 'scroll', 'custom'];
-  const pages = ['/home', '/product/123', '/cart', '/checkout', '/user/profile', '/search?q=phone'];
-  const users = ['user_001', 'user_002', 'user_003', 'anon_abc', 'anon_def'];
-  const spms = ['a_web.b_home.c_banner', 'a_web.b_product.c_action', 'a_web.b_cart.c_checkout'];
-
-  return {
-    eventId: `evt_${Date.now()}_${nextId++}`,
-    eventType: types[Math.floor(Math.random() * types.length)],
-    timestamp: new Date().toISOString(),
-    userId: users[Math.floor(Math.random() * users.length)],
-    anonymousId: `anon_${Math.random().toString(36).slice(2, 8)}`,
-    sessionId: `sess_${Math.random().toString(36).slice(2, 10)}`,
-    platform: ['web', 'mobile'][Math.floor(Math.random() * 2)],
-    pageUrl: pages[Math.floor(Math.random() * pages.length)],
-    spmCode: spms[Math.floor(Math.random() * spms.length)],
-    elementId: Math.random() > 0.5 ? `el_${Math.floor(Math.random() * 100)}` : undefined,
-    elementText: Math.random() > 0.5 ? ['购买', '加入购物车', '搜索', '返回首页'][Math.floor(Math.random() * 4)] : undefined,
-    properties: { price: Math.floor(Math.random() * 1000), currency: 'CNY' },
-    ...overrides,
-  };
-}
+const WS_BASE = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`;
 
 export const useDebugStore = create<DebugState>((set, get) => ({
+  sessionId: null,
+  sessionStatus: 'idle',
+  appCode: '',
   events: [],
   paused: false,
-  connected: true,
-  filter: {},
+  connected: false,
+  ws: null,
+
+  setAppCode: (code) => set({ appCode: code }),
+
+  createSession: async (appCode) => {
+    set({ sessionStatus: 'creating' });
+    try {
+      const resp = await fetch('/api/v1/engineering/debug/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appCode }),
+      });
+      const json = await resp.json();
+      const sessionId = json.data.sessionId;
+      if (!sessionId) throw new Error('No sessionId');
+
+      set({ sessionId, sessionStatus: 'waiting', appCode });
+
+      const wsUrl = `${WS_BASE}/ws/debug/view/${sessionId}`;
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => set({ connected: true });
+      ws.onmessage = (msg) => {
+        try {
+          const data = JSON.parse(msg.data);
+          if (data.type === 'device_connected') {
+            set({ sessionStatus: 'connected' });
+          } else if (data.type === 'session_closed' || data.type === 'device_disconnected') {
+            set({ sessionStatus: 'waiting' });
+          } else if (data.type !== 'viewer_ready') {
+            get().addEvent({
+              eventId: data.eventId || `evt_${Date.now()}`,
+              eventType: data.eventType || 'unknown',
+              timestamp: data._receivedAt ? new Date(data._receivedAt).toISOString() : new Date().toISOString(),
+              userId: data.userId || '',
+              anonymousId: data.anonymousId || '',
+              sessionId: data.sessionId || sessionId,
+              platform: data.platform || '',
+              pageUrl: data.pageUrl || '',
+              spmCode: data.spma || data.spmCode || '',
+              elementId: data.elementId,
+              elementText: data.elementText,
+              properties: data.properties || data,
+            });
+          }
+        } catch { /* ignore */ }
+      };
+      ws.onclose = () => set({ connected: false });
+      ws.onerror = () => set({ connected: false });
+      set({ ws });
+    } catch (err) {
+      set({ sessionStatus: 'idle' });
+      throw err;
+    }
+  },
+
+  closeSession: () => {
+    const { sessionId, ws } = get();
+    if (ws) { ws.close(); set({ ws: null }); }
+    if (sessionId) {
+      fetch(`/api/v1/engineering/debug/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+    }
+    set({ sessionId: null, sessionStatus: 'closed', connected: false });
+  },
 
   addEvent: (event) => {
     if (get().paused) return;
@@ -53,24 +101,12 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   },
 
   clearEvents: () => set({ events: [] }),
-
   setPaused: (paused) => set({ paused }),
 
-  setConnected: (connected) => set({ connected }),
-
-  setFilter: (filter) => set({ filter }),
-
-  getFilteredEvents: () => {
-    const { events, filter } = get();
-    return events.filter((e) => {
-      if (filter.eventType && e.eventType !== filter.eventType) return false;
-      if (filter.userId && e.userId !== filter.userId) return false;
-      return true;
-    });
-  },
+  getFilteredEvents: () => get().events,
 
   getStats: () => {
-    const events = get().getFilteredEvents();
+    const events = get().events;
     const byType: Record<string, number> = {};
     events.forEach((e) => {
       byType[e.eventType] = (byType[e.eventType] || 0) + 1;

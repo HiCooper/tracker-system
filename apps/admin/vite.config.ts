@@ -12,8 +12,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      '/api/v1/collect': {
+        target: 'http://localhost:8088',
+        changeOrigin: true,
+      },
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8099',
         changeOrigin: true,
       },
     },

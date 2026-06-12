@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Breadcrumb, Table, Button, Input, Select, Checkbox, Radio, Statistic, Space, Divider, Spin } from 'antd';
 import { HomeOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdvancedAnalysisStore } from '../../../stores/advancedAnalysisStore';
+import { useSetupStore } from '../../../stores/setupStore';
 import { RetentionCurveChart } from '../../../components/charts/RetentionCurveChart';
 import dayjs from 'dayjs';
 
@@ -32,8 +33,14 @@ function getTextColor(rate: number): string {
 }
 
 export function RetentionAnalysisPage() {
+  const { appCode } = useParams<{ appCode: string }>();
+  const { apps, fetchApps } = useSetupStore();
   const { retentionCohorts, retentionCurve, retentionSummary, loading, timeRange, setTimeRange, fetchRetention } =
     useAdvancedAnalysisStore();
+
+  useEffect(() => { fetchApps(); }, []);
+
+  const appName = apps.find(a => a.appCode === appCode)?.appName || appCode;
 
   const [initialEvent, setInitialEvent] = useState('first_login');
   const [returnEvent, setReturnEvent] = useState('app_open');
@@ -46,7 +53,7 @@ export function RetentionAnalysisPage() {
     if (!initialEvent || !returnEvent) { return; }
     await fetchRetention({
       initialEvent, returnEvent, retentionDays: retentionDays.sort((a, b) => a - b),
-      platform: platform || undefined, groupBy,
+      platform: platform || undefined, groupBy, appCode,
     });
     setAnalyzed(true);
   };
@@ -95,11 +102,13 @@ export function RetentionAnalysisPage() {
   return (
     <div>
       <Breadcrumb style={{ marginBottom: 16 }} items={[
-        { title: <Link to="/tracker/advanced/retention"><HomeOutlined /> 留存分析</Link> },
+        { title: <Link to="/tracker/advanced"><HomeOutlined /> 高级分析</Link> },
+        { title: appName || appCode || '' },
+        { title: '留存分析' },
       ]} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>留存分析</Title>
+        <Title level={4} style={{ margin: 0 }}>留存分析 {appName ? `— ${appName}` : ''}</Title>
         <RangePicker
           value={[dayjs(timeRange.startTime), dayjs(timeRange.endTime)]}
           onChange={(d) => { if (d?.[0] && d?.[1]) setTimeRange({ startTime: d[0].format('YYYY-MM-DD'), endTime: d[1].format('YYYY-MM-DD') }); }}

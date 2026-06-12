@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GateFlow SDK v2.0 — Demo</title>
+  <meta name="gateflow-spm" content="demo_app.b_home_page">
+  <script src="/tracker-sdk.js" data-app-code="demo_app" data-app-key="gf_ak_a1b2c3d4e5f6a7b8" data-debug="true"></script>
+  <style>
+    body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .box { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 16px 0; }
+    h3 { margin-top: 0; }
+    button { padding: 8px 16px; margin: 4px; cursor: pointer; border: 1px solid #1677ff; background: #1677ff; color: #fff; border-radius: 6px; }
+    button.outline { background: #fff; color: #1677ff; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    .note { color: #888; font-size: 13px; margin-top: 8px; }
+    #log { background: #1a1a2e; color: #0f0; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 220px; overflow: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>GateFlow SDK v2.0 — 统一 <code>data-track</code> 点位</h1>
+
+  <!-- data-track="c_hero"：区块级，自动继承 meta 的 spma.spmb -->
+  <div class="box" data-track="c_hero">
+    <h3>区块 <code>data-track="c_hero"</code></h3>
+    <p>进入视口 → SDK 自动报 <b>exposure</b>: <code>demo_app.b_home_page.hero</code></p>
+    <button data-track="c_hero.d_cta">立即购买</button>
+    <button data-track="c_hero.d_cart" class="outline">加入购物车</button>
+    <p class="note">点击 → SDK 自动报 <b>click</b>: <code>demo_app.b_home_page.hero.cta</code></p>
+  </div>
+
+  <div class="box">
+    <h3>用户标识</h3>
+    <p>先 setUserId，之后事件自动携带。当前: <b id="curUser">(匿名)</b></p>
+    <button onclick="GateFlowTracker.setUserId('user_42');document.getElementById('curUser').textContent='user_42'">登录</button>
+    <button onclick="GateFlowTracker.setUserId('');document.getElementById('curUser').textContent='(匿名)'" class="outline">退出</button>
+  </div>
+
+  <div class="box">
+    <h3>手动 track（仅复杂场景）</h3>
+    <button onclick="GateFlowTracker.track('share',{spmb:'social',spmc:'wechat',properties:{type:'timeline'}})">分享到微信</button>
+  </div>
+
+  <div class="box">
+    <h3>实时日志</h3>
+    <div id="log">等待事件...</div>
+  </div>
+
+  <script>
+    var logEl = document.getElementById('log'), logs = [];
+    var origLog = console.log;
+    console.log = function() {
+      origLog.apply(console, arguments);
+      var msg = Array.from(arguments).join(' ');
+      if (msg.indexOf('[GateFlow]') === 0) {
+        logs.unshift(new Date().toLocaleTimeString() + ' ' + msg.replace('[GateFlow] ', ''));
+        if (logs.length > 20) logs.pop();
+        logEl.textContent = logs.join('\n');
+      }
+    };
+  </script>
+</body>
+</html>

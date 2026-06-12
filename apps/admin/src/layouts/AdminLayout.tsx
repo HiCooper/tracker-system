@@ -6,14 +6,23 @@ import {
   BarChartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  FunnelPlotOutlined,
-  UserSwitchOutlined,
+  PieChartOutlined,
   NodeIndexOutlined,
   ProjectOutlined,
   ApartmentOutlined,
   BugOutlined,
+  LogoutOutlined,
+  MonitorOutlined,
+  FundOutlined,
+  UserOutlined,
+  EyeOutlined,
+  ThunderboltOutlined,
+  BuildOutlined,
+  IdcardOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
+import { useAuthStore } from '../stores/authStore';
 
 const { Header, Sider, Content } = Layout;
 
@@ -21,17 +30,20 @@ type MenuItem = Required<MenuProps>['items'][number];
 
 const menuItems: MenuItem[] = [
   { key: '/tracker/setup', label: '埋点管理', icon: <AimOutlined /> },
-  { key: '/tracker/analysis', label: '流量分析', icon: <BarChartOutlined /> },
   {
-    key: 'advanced',
-    label: '高级分析',
-    icon: <NodeIndexOutlined />,
+    key: 'analytics',
+    label: '数据分析',
+    icon: <BarChartOutlined />,
     children: [
-      { key: '/tracker/advanced/funnel', label: '漏斗分析', icon: <FunnelPlotOutlined /> },
-      { key: '/tracker/advanced/retention', label: '留存分析', icon: <UserSwitchOutlined /> },
-      { key: '/tracker/advanced/path', label: '路径分析', icon: <NodeIndexOutlined /> },
+      { key: '/tracker/data-platform', label: '平台数据', icon: <FundOutlined /> },
+      { key: '/tracker/portrait', label: '画像洞察', icon: <UserOutlined /> },
+      { key: '/tracker/behavior', label: '行为分析', icon: <PieChartOutlined /> },
+      { key: '/tracker/experience', label: '体验分析', icon: <EyeOutlined /> },
+      { key: '/tracker/bi', label: '看板搭建', icon: <BuildOutlined /> },
+      { key: '/tracker/cdp', label: '标签人群', icon: <IdcardOutlined /> },
     ],
   },
+  { key: '/tracker/monitor', label: '系统监控', icon: <MonitorOutlined /> },
   {
     key: 'engineering',
     label: '埋点工程',
@@ -40,22 +52,38 @@ const menuItems: MenuItem[] = [
       { key: '/tracker/engineering/plans', label: '需求管理', icon: <ApartmentOutlined /> },
       { key: '/tracker/engineering/lineage', label: '血缘追踪', icon: <NodeIndexOutlined /> },
       { key: '/tracker/engineering/debug', label: 'Debug 验证', icon: <BugOutlined /> },
+      { key: '/tracker/engineering/autotrack', label: '全埋点管理', icon: <ThunderboltOutlined /> },
+      { key: '/tracker/engineering/verify', label: '埋点验证', icon: <SafetyCertificateOutlined /> },
     ],
   },
 ];
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const [openKeys, setOpenKeys] = useState<string[]>(['advanced']);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
   const { token: themeToken } = theme.useToken();
+  const username = useAuthStore((s) => s.username);
+
+  const handleLogout = () => {
+    useAuthStore.getState().logout();
+    navigate('/login', { replace: true });
+  };
 
   const selectedKey = (() => {
     if (location.pathname.startsWith('/tracker/engineering/lineage')) return '/tracker/engineering/lineage';
     if (location.pathname.startsWith('/tracker/engineering/debug')) return '/tracker/engineering/debug';
+    if (location.pathname.startsWith('/tracker/engineering/autotrack')) return '/tracker/engineering/autotrack';
+    if (location.pathname.startsWith('/tracker/engineering/verify')) return '/tracker/engineering/verify';
     if (location.pathname.startsWith('/tracker/engineering/plans')) return '/tracker/engineering/plans';
-    if (location.pathname.startsWith('/tracker/advanced')) return location.pathname;
+    if (location.pathname.startsWith('/tracker/data-platform')) return '/tracker/data-platform';
+    if (location.pathname.startsWith('/tracker/portrait')) return '/tracker/portrait';
+    if (location.pathname.startsWith('/tracker/behavior')) return '/tracker/behavior';
+    if (location.pathname.startsWith('/tracker/experience')) return '/tracker/experience';
+    if (location.pathname.startsWith('/tracker/bi')) return '/tracker/bi';
+    if (location.pathname.startsWith('/tracker/cdp')) return '/tracker/cdp';
+    if (location.pathname.startsWith('/tracker/monitor')) return '/tracker/monitor';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
     return '/tracker/setup';
   })();
@@ -64,7 +92,25 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/engineering')) {
       setOpenKeys((prev) => prev.includes('engineering') ? prev : [...prev, 'engineering']);
     }
+    if (location.pathname.startsWith('/tracker/data-platform') ||
+        location.pathname.startsWith('/tracker/portrait') ||
+        location.pathname.startsWith('/tracker/behavior') ||
+        location.pathname.startsWith('/tracker/experience') ||
+        location.pathname.startsWith('/tracker/bi') ||
+        location.pathname.startsWith('/tracker/cdp')) {
+      setOpenKeys((prev) => prev.includes('analytics') ? prev : [...prev, 'analytics']);
+    }
   }, [location.pathname]);
+
+  // Listen for auth-expired events from API interceptor
+  useEffect(() => {
+    const handler = () => {
+      useAuthStore.getState().logout();
+      navigate('/login', { replace: true });
+    };
+    window.addEventListener('gateflow:auth-expired', handler);
+    return () => window.removeEventListener('gateflow:auth-expired', handler);
+  }, [navigate]);
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -100,11 +146,27 @@ export function AdminLayout() {
         <Header style={{
           padding: '0 24px', background: themeToken.colorBgContainer,
           borderBottom: `1px solid ${themeToken.colorBorderSecondary}`,
-          display: 'flex', alignItems: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span onClick={() => setCollapsed(!collapsed)} style={{ fontSize: 18, cursor: 'pointer' }}>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+            style={{ fontSize: 18, cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: 'inherit' }}
+          >
             {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-          </span>
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {username && (
+              <span style={{ color: themeToken.colorTextSecondary, fontSize: 14 }}>
+                {username}
+              </span>
+            )}
+            <button onClick={handleLogout}
+              aria-label="退出登录"
+              style={{ cursor: 'pointer', fontSize: 16, color: themeToken.colorTextSecondary, background: 'none', border: 'none', padding: 0 }}>
+              <LogoutOutlined />
+            </button>
+          </div>
         </Header>
         <Content style={{
           margin: 24, padding: 24, background: themeToken.colorBgContainer,

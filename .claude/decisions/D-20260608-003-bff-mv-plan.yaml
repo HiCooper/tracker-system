@@ -1,0 +1,36 @@
+# BFF 聚合 + ClickHouse 物化视图优化方案
+id: D-20260608-003
+timestamp: 2026-06-08T12:00:00
+topic: BFF controller aggregation + ClickHouse materialized views
+priority: P2
+
+context: |
+  tracker-admin has 16 controllers causing N+1 frontend calls.
+  ClickHouse raw table scans degrade on large time ranges.
+  No query caching means repeated requests recompute.
+
+chosen: |
+  1. BFF: Aggregate 16 controllers into 5 domain BFF controllers
+     (TrackingConfig, Engineering, Dashboard, Analytics, Monitor).
+     Each BFF calls existing services, no service-layer changes.
+  2. ClickHouse MV: 3-layer view system — minute-level MVs (real-time),
+     hourly aggregation → MySQL, daily aggregation (existing T+1).
+  3. Query cache: Caffeine (local, 5min) → Redis (30min) → ClickHouse.
+
+rejected:
+  - "GraphQL BFF: adds protocol complexity, REST aggregation suffices"
+  - "ClickHouse Projection: requires newer version, higher maintenance"
+  - "Full Redis cache: daily 10M+ events, prohibitive memory cost"
+
+rationale: |
+  BFF aggregation reduces frontend API calls from 4-6 to 1-2 per page.
+  3-layer MV system provides real-time → near-real → batch data tiers.
+  Two-level cache hits 90%+ for dashboard repeat queries.
+
+impact:
+  files:
+    - backend/tracker-admin/src/main/java/com/gateflow/tracker/controller/ (restructure)
+    - backend/tracker-admin/src/main/java/com/gateflow/tracker/config/CaffeineConfig.java (new)
+    - ClickHouse DDL scripts (new MVs)
+  risk: medium
+  effort: 4 weeks

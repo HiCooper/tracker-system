@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Table, Radio, Checkbox, Spin } from 'antd';
+import { Modal, Table, Radio, Checkbox, Spin, Button } from 'antd';
 import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useAnalysisStore } from '../../stores/analysisStore';
@@ -31,7 +31,7 @@ export function TrendDetailModal({ open, title, subtitle, code, onClose }: Props
   const columns: ColumnsType<Record<string, unknown>> = [
     {
       title: '指标', dataIndex: 'metric', key: 'metric', width: 90, fixed: 'left' as const,
-      render: (m: string) => <a style={{ color: '#1677ff', cursor: 'pointer' }} onClick={() => setChartMetric(m)}>{m}</a>,
+      render: (m: string) => <Button type="link" size="small" onClick={() => setChartMetric(m)}>{m}</Button>,
     },
     ...dates.map((d) => ({ title: d, dataIndex: d, key: d, width: 140, align: 'right' as const })),
   ];

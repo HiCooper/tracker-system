@@ -1,0 +1,81 @@
+# ============================================================================
+# 架构约束 — 可自动检查的规则
+# ============================================================================
+# Agent 每次修改代码后运行所有 error 级别的约束检查。
+# 全部通过才算完成一次迭代。warning 级别记录但不阻塞。
+#
+# 字段说明:
+#   check:      Shell 命令，exit 0 = 通过。manual = 人工检查
+#   severity:   error = 阻塞完成 | warning = 记录不阻塞
+#   auto_fix:   true = Agent 可尝试修复 | false = 必须人工处理
+#   scope:      约束作用的文件/目录范围
+# ============================================================================
+
+version: 1
+
+# ----------------------------------------------------------------------------
+# 依赖规则
+# ----------------------------------------------------------------------------
+constraints:
+  - name: no_circular_deps
+    description: "模块间不得存在循环依赖"
+    check: "npx madge --circular --extensions ts,tsx src/"
+    severity: error
+    auto_fix: true
+    scope: ["src/"]
+
+  - name: layer_dependency_direction
+    description: |
+      依赖方向: domain → application → infrastructure → presentation
+      domain 层不得依赖 infrastructure 或 presentation
+      application 层不得依赖 infrastructure 或 presentation
+    check: "npx dependency-cruiser --validate .dependency-cruiser.js"
+    severity: error
+    auto_fix: false                               # 架构重构需人工确认
+    scope: ["src/"]
+
+  - name: no_new_deps_without_adr
+    description: "新增第三方依赖必须在决策记录中论证必要性"
+    check: "manual"                               # 检查 package.json diff + decisions/
+    severity: warning
+    auto_fix: false
+
+  - name: api_backward_compat
+    description: "对外 API 的响应 schema 必须向后兼容，不得删除或修改已有字段类型"
+    check: "./scripts/api-diff.sh origin/main 2>/dev/null || echo 'no diff tool configured'"
+    severity: error
+    auto_fix: false
+    scope: ["src/api/"]
+
+  - name: no_raw_sql_in_application_layer
+    description: "应用层不得包含原始 SQL 字符串，使用 Repository 抽象"
+    check: "! grep -rP \"(SELECT|INSERT|UPDATE|DELETE).*FROM\" src/application/ --include='*.ts' --include='*.js'"
+    severity: error
+    auto_fix: true
+    scope: ["src/application/"]
+
+  - name: no_console_in_production_code
+    description: "生产代码不得使用 console.log，使用结构化日志"
+    check: "! grep -r 'console\\.log' src/ --include='*.ts' --include='*.js'"
+    severity: warning
+    auto_fix: true
+    scope: ["src/"]
+
+  - name: public_api_has_test
+    description: "每个公开 API 端点必须有对应的集成测试"
+    check: "manual"
+    severity: warning
+    auto_fix: true
+
+# ----------------------------------------------------------------------------
+# 反目标 — Agent 不得做的事情
+# ----------------------------------------------------------------------------
+anti_goals: []
+
+# 示例（取消注释并修改以适配你的项目）:
+#   - "不要引入微服务架构 — 保持单体，模块在代码层面划分"
+#   - "不要引入新的 ORM 或查询构建器 — 使用项目已有的数据访问层"
+#   - "不要重构认证/授权模块 — 本次迭代不涉及"
+#   - "不要引入消息队列 — 同步处理已满足当前吞吐需求"
+#   - "不要过度抽象 — 一个接口只有一个实现时，删除接口"
+#   - "不要为未来需求预留扩展点 — YAGNI"
