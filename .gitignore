@@ -40,6 +40,10 @@ lerna-debug.log*
 coverage/
 .nyc_output/
 
+# VitePress
+docs-site/.vitepress/cache/
+docs-site/.vitepress/dist/
+
 # Misc
 .cache/
 .temp/
