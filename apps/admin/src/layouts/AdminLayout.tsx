@@ -20,6 +20,7 @@ import {
   BuildOutlined,
   IdcardOutlined,
   SafetyCertificateOutlined,
+  FireOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -29,12 +30,25 @@ const { Header, Sider, Content } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
 
 const menuItems: MenuItem[] = [
-  { key: '/tracker/setup', label: '埋点管理', icon: <AimOutlined /> },
+  {
+    key: 'engineering',
+    label: '埋点工程',
+    icon: <ProjectOutlined />,
+    children: [
+      { key: '/tracker/setup', label: '埋点管理', icon: <AimOutlined /> },
+      { key: '/tracker/engineering/plans', label: '需求管理', icon: <ApartmentOutlined /> },
+      { key: '/tracker/engineering/lineage', label: '血缘追踪', icon: <NodeIndexOutlined /> },
+      { key: '/tracker/engineering/debug', label: 'Debug 验证', icon: <BugOutlined /> },
+      { key: '/tracker/engineering/autotrack', label: '全埋点管理', icon: <ThunderboltOutlined /> },
+      { key: '/tracker/engineering/verify', label: '埋点验证', icon: <SafetyCertificateOutlined /> },
+    ],
+  },
   {
     key: 'analytics',
     label: '数据分析',
     icon: <BarChartOutlined />,
     children: [
+      { key: '/tracker/analysis', label: '流量分析', icon: <FireOutlined /> },
       { key: '/tracker/data-platform', label: '平台数据', icon: <FundOutlined /> },
       { key: '/tracker/portrait', label: '画像洞察', icon: <UserOutlined /> },
       { key: '/tracker/behavior', label: '行为分析', icon: <PieChartOutlined /> },
@@ -44,18 +58,6 @@ const menuItems: MenuItem[] = [
     ],
   },
   { key: '/tracker/monitor', label: '系统监控', icon: <MonitorOutlined /> },
-  {
-    key: 'engineering',
-    label: '埋点工程',
-    icon: <ProjectOutlined />,
-    children: [
-      { key: '/tracker/engineering/plans', label: '需求管理', icon: <ApartmentOutlined /> },
-      { key: '/tracker/engineering/lineage', label: '血缘追踪', icon: <NodeIndexOutlined /> },
-      { key: '/tracker/engineering/debug', label: 'Debug 验证', icon: <BugOutlined /> },
-      { key: '/tracker/engineering/autotrack', label: '全埋点管理', icon: <ThunderboltOutlined /> },
-      { key: '/tracker/engineering/verify', label: '埋点验证', icon: <SafetyCertificateOutlined /> },
-    ],
-  },
 ];
 
 export function AdminLayout() {
@@ -83,16 +85,19 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/experience')) return '/tracker/experience';
     if (location.pathname.startsWith('/tracker/bi')) return '/tracker/bi';
     if (location.pathname.startsWith('/tracker/cdp')) return '/tracker/cdp';
+    if (location.pathname.startsWith('/tracker/setup')) return '/tracker/setup';
     if (location.pathname.startsWith('/tracker/monitor')) return '/tracker/monitor';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
     return '/tracker/setup';
   })();
 
   useEffect(() => {
-    if (location.pathname.startsWith('/tracker/engineering')) {
+    if (location.pathname.startsWith('/tracker/engineering') ||
+        location.pathname.startsWith('/tracker/setup')) {
       setOpenKeys((prev) => prev.includes('engineering') ? prev : [...prev, 'engineering']);
     }
-    if (location.pathname.startsWith('/tracker/data-platform') ||
+    if (location.pathname.startsWith('/tracker/analysis') ||
+        location.pathname.startsWith('/tracker/data-platform') ||
         location.pathname.startsWith('/tracker/portrait') ||
         location.pathname.startsWith('/tracker/behavior') ||
         location.pathname.startsWith('/tracker/experience') ||

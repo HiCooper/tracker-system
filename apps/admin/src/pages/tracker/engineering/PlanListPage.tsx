@@ -59,7 +59,7 @@ export function PlanListPage() {
             <>
               <Button type="link" size="small" onClick={() => navigate(`/tracker/engineering/plans/${r.id}/edit`)}>编辑</Button>
               <Button type="link" size="small" onClick={() => handleSubmitReview(r.id)}>提审</Button>
-              <Popconfirm title="确定删除?" onConfirm={async () => { await deletePlan(r.id); message.success('已删除'); fetchPlans(); }}>
+              <Popconfirm title="确定删除?" onConfirm={async () => { await deletePlan(r.id); message.success('已删除'); fetchPlans(statusFilter ? { status: statusFilter } : {}); }}>
                 <Button type="link" size="small" danger>删除</Button>
               </Popconfirm>
             </>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import apiClient from '../services/api';
 
 interface AuthState {
   token: string | null;
@@ -40,14 +41,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
     login: async (username, password) => {
       set({ loading: true });
       try {
-        const resp = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-        const json = await resp.json();
-        if (json.code !== 200) throw new Error(json.message || '登录失败');
-        const { token, role } = json.data;
+        // apiClient response interceptor unwraps ApiResponse.data automatically
+        const res = await apiClient.post('/v1/auth/login', { username, password });
+        const { token, role } = res.data as { token: string; role: string };
         sessionStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, username);
         localStorage.setItem(ROLE_KEY, role);

@@ -99,12 +99,13 @@ export function HealthMonitorPage() {
     // Fetch backend health check via store (Tracker Admin is self-monitoring)
     await fetchHealth();
 
-    // Build Tracker Admin status from store health check
+    // Read latest status directly from store to avoid stale closure
+    const latest = useHealthStore.getState().status;
     const adminStatus: ServiceHealth = {
       name: 'Tracker Admin',
       url: '/actuator/health',
-      status: status?.status === 'UP' ? 'UP' : status?.status === 'DEGRADED' ? 'DOWN' : 'DOWN',
-      details: status?.components || {},
+      status: latest?.status === 'UP' ? 'UP' : latest?.status === 'DEGRADED' ? 'DOWN' : 'DOWN',
+      details: latest?.components || {},
     };
 
     // Probe external infrastructure directly (cross-origin health endpoints)

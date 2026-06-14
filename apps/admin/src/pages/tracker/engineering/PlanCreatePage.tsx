@@ -72,6 +72,13 @@ export function PlanCreatePage() {
 
   const handleSave = async () => {
     const vals = await form.validateFields();
+    // Validate events have at least key and name
+    for (const evt of events) {
+      if (!evt.eventKey.trim() || !evt.eventName.trim()) {
+        message.error('每个事件必须填写标识和名称');
+        return;
+      }
+    }
     setSaving(true);
     try {
       if (isEdit && id) {
@@ -81,22 +88,35 @@ export function PlanCreatePage() {
       }
       message.success(isEdit ? '保存成功' : '创建成功');
       navigate('/tracker/engineering/plans');
+    } catch (err: any) {
+      message.error(err.message || '操作失败');
     } finally { setSaving(false); }
   };
 
   const handleSubmit = async () => {
     const vals = await form.validateFields();
+    // Validate events
+    for (const evt of events) {
+      if (!evt.eventKey.trim() || !evt.eventName.trim()) {
+        message.error('每个事件必须填写标识和名称');
+        return;
+      }
+    }
     setSaving(true);
     try {
       let planId = id ? Number(id) : 0;
       if (isEdit) {
         await updatePlan(planId, { ...vals, events });
+        await submitForReview(planId);
       } else {
-        await createPlan({ ...vals, events });
+        const created = await createPlan({ ...vals, events });
+        planId = created?.id || 0;
+        if (planId) await submitForReview(planId);
       }
-      if (planId) await submitForReview(planId);
       message.success('已提交审核');
       navigate('/tracker/engineering/plans');
+    } catch (err: any) {
+      message.error(err.message || '操作失败');
     } finally { setSaving(false); }
   };
 

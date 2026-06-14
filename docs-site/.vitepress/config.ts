@@ -30,6 +30,7 @@ export default withMermaid(defineConfig({
           items: [
             { text: '快速开始', link: '/guide/' },
             { text: '埋点路径规范 (SPM)', link: '/guide/spm-spec' },
+            { text: '需求管理工作流', link: '/guide/plan-workflow' },
           ],
         },
       ],
