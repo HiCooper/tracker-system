@@ -38,13 +38,10 @@ export const useDebugStore = create<DebugState>((set, get) => ({
   createSession: async (appCode) => {
     set({ sessionStatus: 'creating' });
     try {
-      const resp = await fetch('/api/v1/engineering/debug/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appCode }),
-      });
-      const json = await resp.json();
-      const sessionId = json.data.sessionId;
+      // Use dynamic import to avoid circular dependency
+      const { default: api } = await import('../services/api');
+      const resp = await api.post('/v1/engineering/debug/sessions', { appCode });
+      const sessionId = (resp.data as any)?.sessionId;
       if (!sessionId) throw new Error('No sessionId');
 
       set({ sessionId, sessionStatus: 'waiting', appCode });
@@ -90,7 +87,7 @@ export const useDebugStore = create<DebugState>((set, get) => ({
     const { sessionId, ws } = get();
     if (ws) { ws.close(); set({ ws: null }); }
     if (sessionId) {
-      fetch(`/api/v1/engineering/debug/sessions/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+      import('../services/api').then(m => m.default.delete(`/v1/engineering/debug/sessions/${sessionId}`)).catch(() => {});
     }
     set({ sessionId: null, sessionStatus: 'closed', connected: false });
   },
