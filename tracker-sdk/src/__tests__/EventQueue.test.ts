@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventQueue } from '../queue/EventQueue';
 import type { EventDTO } from '../types/EventTypes';
 
@@ -83,5 +83,62 @@ describe('EventQueue', () => {
     queue.enqueue(createEvent({ eventId: 'clean' }));
     const events = queue.drain();
     expect(events[0]).not.toHaveProperty('_retryCount');
+  });
+
+  describe('flushImmediate', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('posts the event and resolves true on success', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const event = createEvent({ eventId: 'immediate-ok', eventType: 'click' });
+      const ok = await queue.flushImmediate(event, 'http://x/api/v1/collect');
+
+      expect(ok).toBe(true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, init] = fetchMock.mock.calls[0];
+      expect(JSON.parse(init.body)).toEqual({ events: [event] });
+    });
+
+    it('resolves false (does not throw) on failure so caller can re-enqueue', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }));
+
+      const event = createEvent({ eventId: 'immediate-fail', eventType: 'click' });
+      const ok = await queue.flushImmediate(event, 'http://x/api/v1/collect');
+
+      expect(ok).toBe(false);
+      // caller is responsible for re-enqueue; queue itself stays empty here
+      expect(queue.size()).toBe(0);
+    });
+  });
+
+  describe('flushBeacon', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('drains the queue via sendBeacon on success', () => {
+      const beacon = vi.fn().mockReturnValue(true);
+      vi.stubGlobal('navigator', { sendBeacon: beacon });
+
+      queue.enqueue(createEvent({ eventId: 'beacon-a' }));
+      queue.enqueue(createEvent({ eventId: 'beacon-b' }));
+      queue.flushBeacon('http://x/api/v1/collect');
+
+      expect(beacon).toHaveBeenCalledTimes(1);
+      expect(queue.size()).toBe(0);
+    });
+
+    it('re-enqueues when sendBeacon returns false', () => {
+      vi.stubGlobal('navigator', { sendBeacon: vi.fn().mockReturnValue(false) });
+
+      queue.enqueue(createEvent({ eventId: 'beacon-fail' }));
+      queue.flushBeacon('http://x/api/v1/collect');
+
+      expect(queue.size()).toBe(1);
+    });
   });
 });

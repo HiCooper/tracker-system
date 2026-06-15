@@ -23,12 +23,8 @@ const DebugPage = lazy(() => import('./pages/tracker/engineering/DebugPage').the
 const AutoTrackPage = lazy(() => import('./pages/tracker/engineering/AutoTrackPage').then(m => ({ default: m.AutoTrackPage })));
 const VerifyPage = lazy(() => import('./pages/tracker/engineering/VerifyPage').then(m => ({ default: m.VerifyPage })));
 const HealthMonitorPage = lazy(() => import('./pages/tracker/HealthMonitorPage').then(m => ({ default: m.HealthMonitorPage })));
-const PlatformDataPage = lazy(() => import('./pages/tracker/data-platform/PlatformDataPage').then(m => ({ default: m.PlatformDataPage })));
-const PortraitInsightPage = lazy(() => import('./pages/tracker/portrait/PortraitInsightPage').then(m => ({ default: m.PortraitInsightPage })));
-const BehaviorAnalysisPage = lazy(() => import('./pages/tracker/behavior/BehaviorAnalysisPage').then(m => ({ default: m.BehaviorAnalysisPage })));
-const ExperienceAnalysisPage = lazy(() => import('./pages/tracker/experience/ExperienceAnalysisPage').then(m => ({ default: m.ExperienceAnalysisPage })));
-const DashboardBuilderPage = lazy(() => import('./pages/tracker/bi/DashboardBuilderPage').then(m => ({ default: m.DashboardBuilderPage })));
-const CdpTagPage = lazy(() => import('./pages/tracker/cdp/CdpTagPage').then(m => ({ default: m.CdpTagPage })));
+// NOTE: data-platform / portrait / behavior / experience / bi / cdp 的页面已实现但
+// 对应后端接口尚未提供,路由暂时下线(连同侧边栏入口)避免运行时 404,待后端实现后恢复。
 
 function LazyPage({ children }: { children: React.ReactNode }) {
   return (
@@ -74,13 +70,6 @@ export const router = createBrowserRouter([
       { path: 'tracker/analysis/:appCode', element: <LazyPage><AnalysisPagePage /></LazyPage> },
       { path: 'tracker/analysis/:appCode/:pageCode', element: <LazyPage><AnalysisBlockPage /></LazyPage> },
       { path: 'tracker/analysis/:appCode/:pageCode/:blockCode', element: <LazyPage><AnalysisFunctionPage /></LazyPage> },
-      // Data Analytics
-      { path: 'tracker/data-platform', element: <LazyPage><PlatformDataPage /></LazyPage> },
-      { path: 'tracker/portrait', element: <LazyPage><PortraitInsightPage /></LazyPage> },
-      { path: 'tracker/behavior', element: <LazyPage><BehaviorAnalysisPage /></LazyPage> },
-      { path: 'tracker/experience', element: <LazyPage><ExperienceAnalysisPage /></LazyPage> },
-      { path: 'tracker/bi', element: <LazyPage><DashboardBuilderPage /></LazyPage> },
-      { path: 'tracker/cdp', element: <LazyPage><CdpTagPage /></LazyPage> },
       // Engineering
       { path: 'tracker/engineering/plans', element: <LazyPage><PlanListPage /></LazyPage> },
       { path: 'tracker/engineering/plans/new', element: <LazyPage><PlanCreatePage /></LazyPage> },
