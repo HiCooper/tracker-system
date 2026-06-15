@@ -74,6 +74,6 @@ $RECYCLE.BIN/
 # vercel
 .vercel
 
- backend/*/target/
- *.sql.bak
- docs/temp/
+backend/*/target/
+*.sql.bak
+docs/temp/

@@ -215,7 +215,9 @@ public class GateFlowClient {
     }
 
     private TrackResponse send(TrackRequest request) throws Exception {
-        String body = mapper.writeValueAsString(request);
+        // 映射为服务端契约的嵌套结构(epoch-millis 时间戳),而非直接序列化扁平 TrackEvent。
+        String body = mapper.writeValueAsString(
+                com.gateflow.sdk.model.CollectRequest.from(request.getEvents(), request.getClientId()));
 
         HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(collectUrl))

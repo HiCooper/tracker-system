@@ -1,0 +1,29 @@
+id: "D-20260615-004"
+timestamp: "2026-06-15T08:20:00"
+topic: "tracker-admin 安全基线(JWT/RBAC/WebSocket)与聚合子系统(结构修正 B)落地方式"
+context: >
+  tracker-admin 零测试,且存在硬编码 JWT 密钥、admin/admin123 明文凭据、role 解析但不校验、
+  WebSocket 无鉴权、MySQL agg 表无人写导致分析页恒空等 P0。需在不破坏现有单管理员流程下落地。
+chosen: >
+  - JWT:密钥必填(JWT_SECRET, >=32B),缺失/过弱启动失败;删除静默补齐。
+  - 初始 admin:删除静态 admin123 + 明文日志,改 ADMIN_INITIAL_PASSWORD env 或一次性随机密码。
+  - RBAC:新增 @RequireRole 注解 + 拦截器,套用于全部 DELETE 与 plan 审核/上线(要求 admin)。
+  - WebSocket:观看端 /ws/debug/view/* 加 JWT 握手鉴权 + 来源白名单;SDK 端跨域保留。
+  - 聚合(结构修正 B):EventAnalysisService/SessionAnalysisService 改直查 ClickHouse,
+    弃用从无写入的 MySQL agg 表(表/实体暂留,物理删除留 P2)。
+rejected:
+  - "对所有写操作统一要求 admin: 可能误锁未知角色;先覆盖删除/审核等高危边界,范围可控"
+  - "WebSocket 两路径统一 JWT+来源白名单: SDK 端在业务方跨域页面,套 admin 白名单会直接断连"
+  - "保留 MySQL agg + 新增 @Scheduled job: 仍是冗余链路;评估推荐直查 CH 作为单一分析存储"
+  - "删除 MySQL agg 表/实体/migration: 涉及 schema 变更且需联调,风险高于收益,降级为 P2"
+rationale: >
+  以最小破坏面落地「缺失即失败 / 默认拒绝」的安全姿态;聚合改直查让分析页立刻有真实数据,
+  且复用 AnalysisService 既有 CH 访问范式。残留风险(CH SQL 未联调、SDK 端调试令牌、首登强改密)
+  已在 PR 与待办中标注。
+constraints_ref:
+  - "launch-readiness-assessment.md §1 结构修正 B / §3.4 P0"
+  - "dod.yaml: decisions_needing_human(authentication_change) — 已记录"
+impact:
+  files:
+    - "tracker-admin: JwtUtil, AuthService, security/*, config/WebSocketConfig+WebMvcConfig+CorsConfig, PlanService/Controller, *AnalysisService"
+  risk: "medium"

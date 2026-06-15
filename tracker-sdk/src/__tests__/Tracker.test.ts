@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Tracker } from '../tracker/Tracker';
+import { Tracker, resolveCollectUrl } from '../tracker/Tracker';
 
 // Mock localStorage
 const store: Record<string, string> = {};
@@ -58,11 +58,23 @@ globalThis.navigator = {
   replaceState: vi.fn(),
 };
 
+describe('resolveCollectUrl', () => {
+  it('appends /api/v1/collect to a base serverUrl', () => {
+    expect(resolveCollectUrl('http://localhost:8088')).toBe('http://localhost:8088/api/v1/collect');
+  });
+  it('strips trailing slashes before appending', () => {
+    expect(resolveCollectUrl('https://t.example.com/')).toBe('https://t.example.com/api/v1/collect');
+  });
+  it('tolerates a full collect URL (backward compatibility)', () => {
+    expect(resolveCollectUrl('http://localhost:8088/api/v1/collect')).toBe('http://localhost:8088/api/v1/collect');
+  });
+});
+
 describe('Tracker', () => {
   it('should create a tracker instance', () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
     });
     expect(tracker).toBeDefined();
     tracker.destroy();
@@ -71,7 +83,7 @@ describe('Tracker', () => {
   it('should generate anonymous ID', () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
     });
     // Anonymous ID should be generated
     const anonId = localStorage.getItem('gf_anonymous_id');
@@ -82,7 +94,7 @@ describe('Tracker', () => {
   it('should call onTrack callback when event is tracked', async () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
       autoTrack: { pageView: false, click: false, exposure: false, scroll: false },
     });
 
@@ -101,7 +113,7 @@ describe('Tracker', () => {
   it('should support identify and retrieve userId', async () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
       autoTrack: {},
       gateFlow: { enabled: true, userInitEndpoint: 'http://localhost:8088' },
     });
@@ -115,7 +127,7 @@ describe('Tracker', () => {
   it('should track page_view events', async () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
       autoTrack: { pageView: true, click: false, exposure: false, scroll: false },
     });
 
@@ -136,7 +148,7 @@ describe('Tracker', () => {
   it('should have getQueueSize returning a number', () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
     });
     expect(typeof tracker.getQueueSize()).toBe('number');
     tracker.destroy();
@@ -145,7 +157,7 @@ describe('Tracker', () => {
   it('should support setExperimentTags', async () => {
     const tracker = new Tracker({
       appId: 'test-app',
-      endpoint: 'http://localhost:8088/api/v1/collect',
+      serverUrl: 'http://localhost:8088',
       autoTrack: {},
       gateFlow: { enabled: true },
     });

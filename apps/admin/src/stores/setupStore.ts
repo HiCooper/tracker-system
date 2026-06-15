@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import { setupApi } from '../services/setupApi';
 import type { SpmApp, SpmPage, SpmBlock, SpmFunction } from '../types/spm';
 
@@ -36,13 +37,21 @@ export const useSetupStore = create<SetupState>((set) => ({
 
   fetchApps: async () => {
     set({ loading: true });
-    const data = await setupApi.listApps();
-    set({ apps: data, loading: false });
+    try {
+      const data = await setupApi.listApps();
+      set({ apps: data });
+    } catch (e) {
+      message.error('加载应用列表失败');
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   createApp: async (d) => {
-    await setupApi.createApp(d);
-    set(s => ({ apps: [...s.apps, { id: Date.now(), ...d, description: d.description || '', pageCount: 0, createdAt: new Date().toISOString() }] }));
+    // Use the server response (with the real DB id) instead of fabricating one.
+    const created = await setupApi.createApp(d);
+    set(s => ({ apps: [...s.apps, created] }));
   },
 
   deleteApp: async (id) => {
@@ -57,8 +66,15 @@ export const useSetupStore = create<SetupState>((set) => ({
 
   fetchPages: async (appId) => {
     set({ loading: true });
-    const data = await setupApi.listPages(appId);
-    set({ pages: data, loading: false });
+    try {
+      const data = await setupApi.listPages(appId);
+      set({ pages: data });
+    } catch (e) {
+      message.error('加载页面列表失败');
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   createPage: async (appId, d) => {
@@ -73,8 +89,15 @@ export const useSetupStore = create<SetupState>((set) => ({
 
   fetchBlocks: async (pageId) => {
     set({ loading: true });
-    const data = await setupApi.listBlocks(pageId);
-    set({ blocks: data, loading: false });
+    try {
+      const data = await setupApi.listBlocks(pageId);
+      set({ blocks: data });
+    } catch (e) {
+      message.error('加载区块列表失败');
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   createBlock: async (pageId, d) => {
@@ -89,8 +112,15 @@ export const useSetupStore = create<SetupState>((set) => ({
 
   fetchFunctions: async (blockId) => {
     set({ loading: true });
-    const data = await setupApi.listFunctions(blockId);
-    set({ functions: data, loading: false });
+    try {
+      const data = await setupApi.listFunctions(blockId);
+      set({ functions: data });
+    } catch (e) {
+      message.error('加载功能点列表失败');
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
   },
 
   createFunction: async (blockId, d) => {

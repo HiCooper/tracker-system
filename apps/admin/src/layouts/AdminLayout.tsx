@@ -6,19 +6,13 @@ import {
   BarChartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PieChartOutlined,
   NodeIndexOutlined,
   ProjectOutlined,
   ApartmentOutlined,
   BugOutlined,
   LogoutOutlined,
   MonitorOutlined,
-  FundOutlined,
-  UserOutlined,
-  EyeOutlined,
   ThunderboltOutlined,
-  BuildOutlined,
-  IdcardOutlined,
   SafetyCertificateOutlined,
   FireOutlined,
 } from '@ant-design/icons';
@@ -49,12 +43,8 @@ const menuItems: MenuItem[] = [
     icon: <BarChartOutlined />,
     children: [
       { key: '/tracker/analysis', label: '流量分析', icon: <FireOutlined /> },
-      { key: '/tracker/data-platform', label: '平台数据', icon: <FundOutlined /> },
-      { key: '/tracker/portrait', label: '画像洞察', icon: <UserOutlined /> },
-      { key: '/tracker/behavior', label: '行为分析', icon: <PieChartOutlined /> },
-      { key: '/tracker/experience', label: '体验分析', icon: <EyeOutlined /> },
-      { key: '/tracker/bi', label: '看板搭建', icon: <BuildOutlined /> },
-      { key: '/tracker/cdp', label: '标签人群', icon: <IdcardOutlined /> },
+      // NOTE: 平台数据/画像洞察/行为分析/体验分析/看板搭建/标签人群 暂未实现对应后端接口,
+      // 先隐藏入口避免 404,待后端 controller 实现后再逐个放开。
     ],
   },
   { key: '/tracker/monitor', label: '系统监控', icon: <MonitorOutlined /> },
@@ -79,12 +69,6 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/engineering/autotrack')) return '/tracker/engineering/autotrack';
     if (location.pathname.startsWith('/tracker/engineering/verify')) return '/tracker/engineering/verify';
     if (location.pathname.startsWith('/tracker/engineering/plans')) return '/tracker/engineering/plans';
-    if (location.pathname.startsWith('/tracker/data-platform')) return '/tracker/data-platform';
-    if (location.pathname.startsWith('/tracker/portrait')) return '/tracker/portrait';
-    if (location.pathname.startsWith('/tracker/behavior')) return '/tracker/behavior';
-    if (location.pathname.startsWith('/tracker/experience')) return '/tracker/experience';
-    if (location.pathname.startsWith('/tracker/bi')) return '/tracker/bi';
-    if (location.pathname.startsWith('/tracker/cdp')) return '/tracker/cdp';
     if (location.pathname.startsWith('/tracker/setup')) return '/tracker/setup';
     if (location.pathname.startsWith('/tracker/monitor')) return '/tracker/monitor';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
@@ -96,13 +80,7 @@ export function AdminLayout() {
         location.pathname.startsWith('/tracker/setup')) {
       setOpenKeys((prev) => prev.includes('engineering') ? prev : [...prev, 'engineering']);
     }
-    if (location.pathname.startsWith('/tracker/analysis') ||
-        location.pathname.startsWith('/tracker/data-platform') ||
-        location.pathname.startsWith('/tracker/portrait') ||
-        location.pathname.startsWith('/tracker/behavior') ||
-        location.pathname.startsWith('/tracker/experience') ||
-        location.pathname.startsWith('/tracker/bi') ||
-        location.pathname.startsWith('/tracker/cdp')) {
+    if (location.pathname.startsWith('/tracker/analysis')) {
       setOpenKeys((prev) => prev.includes('analytics') ? prev : [...prev, 'analytics']);
     }
   }, [location.pathname]);
