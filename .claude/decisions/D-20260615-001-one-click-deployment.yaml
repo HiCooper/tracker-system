@@ -1,0 +1,34 @@
+id: "D-20260615-001"
+timestamp: "2026-06-15T01:40:00"
+topic: "全栈一键部署：补齐 Dockerfile、修正 compose 端口/监听器/凭据错配"
+context: |
+  上线就绪自检发现 docker compose 无法启动整个系统：两个后端 submodule 缺少
+  Dockerfile（compose build.context 指向它们）；compose 端口映射与应用实际监听端口
+  错配（admin 8080↔8082、service 8081↔8088）；前端不在编排中；Kafka advertised
+  listener 指向 localhost 导致容器间无法连通；ClickHouse 凭据与默认镜像不符。
+chosen: |
+  在父仓库内新增 docker/tracker-service.Dockerfile、docker/tracker-admin.Dockerfile
+  （多阶段 maven 构建 + JRE 运行 + curl 健康检查），apps/admin/Dockerfile + nginx.conf
+  （构建静态资源并反代 /api → admin、/api/v1/collect → service、/ws → admin）。
+  重写 docker-compose.yml：修正端口、引用上述 Dockerfile、拆分 Kafka 内外监听器、
+  统一 ClickHouse 使用 default 用户、补齐 redis/kafka 健康检查依赖、新增前端服务。
+rejected:
+  - "把 Dockerfile 提交进 submodule 仓库：超出本次仓库授权范围（仅 tracker-system），且会割裂部署配置"
+  - "为后端新增 application-docker.yml profile：env 变量已通过 ${VAR:default} 注入，profile 冗余"
+  - "前端用 vite preview 提供服务：非生产级，缺少反代能力，nginx 更贴近上线形态"
+rationale: |
+  所有部署产物集中在父仓库，单条 `docker compose up -d --build` 即可拉起全栈，
+  不触碰 submodule；nginx 反代规则与 vite dev proxy 一致，开发/部署行为统一。
+constraints_ref:
+  - "dod.yaml: escalation.decisions_needing_human=infrastructure_change（已记录决策）"
+  - "constraints.yaml: api_backward_compat（未改动对外 API schema）"
+impact:
+  files:
+    - "docker-compose.yml"
+    - "docker/tracker-service.Dockerfile"
+    - "docker/tracker-admin.Dockerfile"
+    - "apps/admin/Dockerfile"
+    - "apps/admin/nginx.conf"
+    - "apps/admin/package.json"
+    - "tracker-sdk/package.json"
+  risk: "medium"

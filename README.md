@@ -56,6 +56,27 @@ tracker-system/
 
 ## 快速开始
 
+### 0. 一键启动全栈（推荐）
+
+克隆仓库及子模块后，单条命令拉起完整系统（MySQL · ClickHouse · Redis · Kafka · 采集服务 · 管理后台 · 前端）：
+
+```bash
+git submodule update --init --recursive
+docker compose up -d --build
+```
+
+启动后访问：
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 管理后台前端 | http://localhost:8080 | React 控制台（nginx 提供，已反代 API） |
+| 管理后台 API | http://localhost:8082 | tracker-admin（Swagger: `/swagger-ui.html`） |
+| 事件采集服务 | http://localhost:8088 | tracker-service（埋点上报 `POST /api/v1/collect`） |
+| Kafka（宿主机） | localhost:29092 | 容器内部使用 `kafka:9092` |
+
+> 仅需基础设施（数据库/中间件）用于本地开发后端时，可改用
+> `docker compose -f docker/docker-compose.infra.yml up -d`。
+
 ### 1. 安装 Tracker SDK
 
 ```bash
