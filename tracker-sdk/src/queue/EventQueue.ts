@@ -92,8 +92,34 @@ export class EventQueue {
   }
 
   /**
+   * Flush the queue using navigator.sendBeacon — survives page unload, unlike fetch.
+   * Falls back to async flush when sendBeacon is unavailable. Re-enqueues on failure.
+   */
+  flushBeacon(endpoint: string): void {
+    if (this.queue.length === 0) return;
+
+    if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') {
+      void this.flush(endpoint);
+      return;
+    }
+
+    const events = this.drain();
+    try {
+      const blob = new Blob([JSON.stringify({ events })], { type: 'application/json' });
+      const ok = navigator.sendBeacon(endpoint, blob);
+      if (!ok) {
+        this.enqueueBatch(events);
+      }
+    } catch (error) {
+      console.error('[Tracker] sendBeacon flush failed:', error);
+      this.enqueueBatch(events);
+    }
+  }
+
+  /**
    * Immediately flush a single high-priority event (exposure/click) without waiting for batch threshold.
    * This ensures critical business metrics are reported in real-time.
+   * Returns false on failure so the caller can re-enqueue for retry.
    */
   async flushImmediate(event: EventDTO, endpoint: string): Promise<boolean> {
     console.log(`[Tracker] Immediately flushing ${event.eventType} event: ${event.eventId}`);

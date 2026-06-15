@@ -172,6 +172,17 @@ export class Tracker {
       this.queue.flush(this.config.endpoint);
     });
 
+    // Drain the queue on page hide / unload so pending click/scroll/stay/error
+    // events are not lost when the tab closes. sendBeacon survives unload.
+    window.addEventListener('pagehide', () => {
+      this.queue.flushBeacon(this.config.endpoint);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this.queue.flushBeacon(this.config.endpoint);
+      }
+    });
+
     console.log('[Tracker] Initialization complete');
   }
 
@@ -195,8 +206,12 @@ export class Tracker {
     this.getSessionCollector()?.recordActivity();
 
     if (IMMEDIATE_EVENT_TYPES.includes(eventType)) {
-      this.queue.flushImmediate(event, this.config.endpoint).catch(() => {
-        this.queue.enqueue(event);
+      // flushImmediate resolves false (it does not reject) on failure — re-enqueue
+      // so the event is retried by the periodic flush instead of being silently lost.
+      this.queue.flushImmediate(event, this.config.endpoint).then((ok) => {
+        if (!ok) {
+          this.queue.enqueue(event);
+        }
       });
     } else {
       this.queue.enqueue(event);
