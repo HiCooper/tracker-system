@@ -131,7 +131,7 @@
 
 **P2**: Lineage 的 `LIKE '%key%'` 子串匹配脆弱 + plan 节点误标 `"dashboard"`;逻辑删除 event 残留 property 孤儿行;WS handler 每连接泄漏 `ScheduledExecutorService` + 残留 mock 模拟;清理未用依赖(Redisson/MapStruct);JWT 弱密钥静默补齐改为 fail-fast;Swagger 全环境公开 → 生产关闭。
 
-### 3.5 Java SDK backend/tracker-sdk **[submodule]**
+### 3.5 Java SDK backend/tracker-sdk **[本仓库]**(非 submodule,可直接改)
 
 **P0**
 1. **wire 契约全错**:`TrackEvent` 扁平 + `Instant` 时间戳,服务端要嵌套 `EventDTO` + `Long` 毫秒。
