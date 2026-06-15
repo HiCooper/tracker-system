@@ -80,9 +80,10 @@ export class PageCollector {
 
   private handleUnload = (): void => {
     this.reportStayDuration();
-    const data = this.buildPageViewData();
-    const blob = new Blob([JSON.stringify({ events: [data] })], { type: 'application/json' });
-    navigator.sendBeacon?.(this.endpoint, blob);
+    // The Tracker's own pagehide/visibilitychange handler calls
+    // queue.flushBeacon() which includes auth headers.  We no longer
+    // send a raw sendBeacon from here — it would lack X-Sdk-Token
+    // and be rejected by the server.
   };
 
   private reportStayDuration(): void {

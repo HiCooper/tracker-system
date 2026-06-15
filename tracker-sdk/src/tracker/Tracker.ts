@@ -5,6 +5,11 @@ import type {
   EventData,
   ContextData,
   ExperimentTag,
+  AutoTrackConfig,
+  BatchConfig,
+  OfflineConfig,
+  DebugConfig,
+  GateFlowConfig,
 } from '../types/EventTypes';
 import { PageCollector } from '../collectors/PageCollector';
 import { ClickCollector } from '../collectors/ClickCollector';
@@ -14,12 +19,22 @@ import { SessionCollector } from '../collectors/SessionCollector';
 import { StayCollector } from '../collectors/StayCollector';
 import { ErrorCollector } from '../collectors/ErrorCollector';
 import { EventQueue } from '../queue/EventQueue';
+import type { AuthContext } from '../queue/EventQueue';
 import { Sender } from '../sender/Sender';
 import { GateFlowIntegration } from '../integration/GateFlowIntegration';
 
 const SDK_VERSION = '1.0.0';
 const COLLECT_PATH = '/api/v1/collect';
 const IMMEDIATE_EVENT_TYPES: EventType[] = ['exposure', 'click'];
+
+/** TrackerConfig with defaults filled in for optional sub-objects. */
+interface ResolvedConfig extends TrackerConfig {
+  autoTrack: AutoTrackConfig;
+  batch: BatchConfig;
+  offline: OfflineConfig;
+  debug: boolean | DebugConfig;
+  gateFlow: GateFlowConfig;
+}
 
 /**
  * Resolve the event-collect URL from the configured serverUrl base.
@@ -39,18 +54,22 @@ interface Collector {
 }
 
 export class Tracker {
-  private config: Required<TrackerConfig>;
+  private config: ResolvedConfig;
   private collectUrl: string;
   private queue: EventQueue;
   private sender: Sender;
   private collectors: Collector[] = [];
   private gateFlow: GateFlowIntegration | null = null;
   private onEvent: EventCallback | null = null;
+  private sdkToken: string | null = null;
 
   constructor(config: TrackerConfig) {
     this.config = {
       serverUrl: config.serverUrl,
       appId: config.appId,
+      sdkToken: config.sdkToken,
+      appKey: config.appKey,
+      clientId: config.clientId,
       autoTrack: config.autoTrack ?? {},
       batch: config.batch ?? { maxSize: 50, interval: 2000 },
       offline: config.offline ?? { enabled: true, maxQueueSize: 100 },
@@ -61,7 +80,23 @@ export class Tracker {
     // Resolve the collect endpoint once from the serverUrl base.
     this.collectUrl = resolveCollectUrl(this.config.serverUrl);
 
+    // ── Auth setup ──
+    // sdkToken (pre-obtained JWT): sends X-Sdk-Token header — for server-side proxy.
+    // appKey (write-only key):   sends X-App-Key header   — for direct browser use.
+    // sdkToken takes precedence when both are provided.
+    if (this.config.sdkToken) {
+      this.sdkToken = this.config.sdkToken;
+    }
+
     this.queue = new EventQueue(this.config.offline);
+
+    const authCtx: AuthContext = {
+      getSdkToken: () => this.sdkToken,
+      getAppKey: () => this.config.appKey ?? null,
+      getClientId: () => this.config.clientId ?? 'web-default',
+    };
+    this.queue.setAuthContext(authCtx);
+
     this.sender = new Sender(this.collectUrl, this.queue);
 
     // GateFlow integration for userId + experiment tags
@@ -151,9 +186,18 @@ export class Tracker {
    * Initialize the tracker. Starts all collectors and fetches GateFlow user context.
    */
   async init(): Promise<void> {
+    // Warn if no credentials are configured
+    if (!this.sdkToken && !this.config.appKey) {
+      console.warn('[Tracker] No sdkToken or appKey configured — '
+        + 'events will be rejected (401).');
+    }
+
     console.log('[Tracker] Initializing with config:', {
       endpoint: this.collectUrl,
       appId: this.config.appId,
+      clientId: this.config.clientId ?? 'web-default',
+      hasToken: !!this.sdkToken,
+      hasAppKey: !!this.config.appKey,
       autoTrack: Object.keys(this.config.autoTrack),
       batch: this.config.batch,
       offline: this.config.offline,

@@ -37,5 +37,10 @@ export { ErrorCollector } from './collectors/ErrorCollector';
 export { EventQueue } from './queue/EventQueue';
 export { Sender } from './sender/Sender';
 
+// Auth
+export { AuthClient } from './auth/AuthClient';
+export type { AuthResponse } from './auth/AuthClient';
+export type { AuthContext } from './queue/EventQueue';
+
 // GateFlow integration
 export { GateFlowIntegration } from './integration/GateFlowIntegration';
