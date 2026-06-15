@@ -5,6 +5,27 @@
 
 ---
 
+## 会话 2 进度更新(2026-06-15,分支 `claude/tracker-system-launch-ready-mrwu1h`)
+
+后端 submodule 与 Java SDK 的 P0 已完成并推送(作者具备三仓库写权限,经本地 git 代理 push):
+
+- **tracker-service** → PR `HiCooper/tracker-service#1`(分支 `claude/backend-p0-fixes`):
+  Redis 命名空间、ClickHouse 写入(UTC DateTime64 + JSON properties)、启用 Kafka 路径 + 同步兜底、
+  统一 DLQ、迁移 fail-fast;新增单测 + ClickHouse Testcontainers IT(`RUN_CH_IT=true` 运行)。`mvn test` 全绿。
+- **tracker-admin** → PR `HiCooper/tracker-admin#1`(分支 `claude/backend-p0-fixes`):
+  JWT 密钥强制、删 admin/admin123 明文、RBAC(@RequireRole + 拦截器)、WebSocket 观看端握手鉴权 +
+  来源白名单、CORS 收敛、聚合改直查 ClickHouse;新增 19 用例(此前 0 测试)。`mvn test` 全绿。
+- **Java SDK**(本仓库 `backend/tracker-sdk`):wire 契约映射(嵌套 + epoch-millis)、TrackResponse 形状对齐;
+  新增 JDK HttpServer 契约测试。`mvn test` 9/9 绿。`/collect/auth` 服务端 main 已实现,AuthClient 无需改。
+- 决策:`D-20260615-003/004/005`。
+- **环境确认**:Docker daemon 可起,但镜像拉取被网络策略阻断(Hub CDN 403 + 速率限制,ghcr/quay 亦 403),
+  故无法本地 `docker compose up` / 跑 Testcontainers;验证靠 `mvn test` 与 CI。`docker compose config` 通过。
+
+**剩余(P1/P2,未做):** service 会话态迁 Redis、采集端限流/鉴权细化;admin MonitorController 假数据、
+首登强制改密、SDK 端调试 WebSocket sessionId 归属令牌、删 MySQL agg 表;前端死页面清理与 lint/test 脚本。
+
+---
+
 ## 0. 一句话现状
 
 全系统已完成深度分析与架构裁决(架构基本健全,有 3 处结构性修正)。

@@ -1,0 +1,25 @@
+id: "D-20260615-005"
+timestamp: "2026-06-15T08:30:00"
+topic: "Java SDK 与服务端采集契约对齐(嵌套结构 + epoch-millis + 响应形状)"
+context: >
+  Java SDK 直接序列化扁平 TrackEvent(+ Instant 时间戳),与服务端嵌套 EventDTO(page/session/device/
+  context/data + Long 毫秒)不符,字段全丢;TrackResponse 期望扁平 {success,...} 而服务端返回
+  {code,message,data},isSuccess() 恒 false。服务端 /api/v1/collect/auth 在 main 已实现,SDK AuthClient 已可用。
+chosen: >
+  - 新增 CollectRequest 线上 DTO,发送前由扁平 TrackEvent 映射为服务端嵌套结构,timestamp 转 epoch-millis;
+    服务端无对应字段的 spm/deviceType/os/browser 折叠进 data.custom 避免丢失。
+  - 重写 TrackResponse 对齐 {code,message,data{accepted,duplicate,rejected,dlq}},isSuccess()=code==200。
+  - 补 JDK HttpServer 契约测试(请求体形状 + 响应解析),不引入 MockWebServer 新依赖。
+rejected:
+  - "在 TrackEvent 上加 Jackson 注解直接出嵌套: 污染领域模型,且嵌套分组难以用注解表达"
+  - "引入 okhttp mockwebserver 做契约测试: 新依赖需 ADR;JDK 自带 HttpServer 足够且零依赖"
+  - "改 AuthClient: 服务端 /collect/auth 已实现且 SDK 调用一致,无需改动"
+rationale: >
+  以独立 wire DTO 做映射,保持领域模型干净;响应对齐消除恒 false 的成功判定;零依赖契约测试可在 CI 常驻。
+constraints_ref:
+  - "launch-readiness-assessment.md §3.5 P0/P1"
+  - "constraints.yaml: no_new_deps_without_adr(未引入新依赖)"
+impact:
+  files:
+    - "tracker-sdk: model/CollectRequest(新), model/TrackResponse, GateFlowClient, test/WireContractTest(新)"
+  risk: "low"
