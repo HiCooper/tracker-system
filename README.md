@@ -84,11 +84,12 @@ npm install @gate-flow/tracker-sdk
 ```
 
 ```typescript
-import { createTracker } from '@gate-flow/tracker-sdk'
+import { Tracker } from '@gate-flow/tracker-sdk'
 
-const tracker = createTracker({
+const tracker = new Tracker({
   appId: 'your-app-id',
-  serverUrl: 'https://tracker.example.com/api/v1/collect',
+  // 传服务器基址即可,SDK 自动拼接 /api/v1/collect
+  serverUrl: 'https://tracker.example.com',
   autoTrack: {
     pageView: true,
     click: true,
@@ -98,6 +99,8 @@ const tracker = createTracker({
     error: true,
   },
 })
+
+await tracker.init()
 ```
 
 ### 2. 启动文档站点

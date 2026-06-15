@@ -1,0 +1,28 @@
+id: "D-20260615-002"
+timestamp: "2026-06-15T02:10:00"
+topic: "TS SDK 配置契约从 endpoint(完整 collect URL) 改为 serverUrl(基址自动拼接)"
+context: |
+  原 TrackerConfig.endpoint 要求调用方手写完整 /api/v1/collect 路径,正确性完全依赖
+  调用方;且 GateFlowIntegration 再拼 /api/v1/user/init 会产生 .../collect/api/v1/user/init
+  双拼 bug。属破坏性变更,经人工确认后实施(DoD: breaking_api_change)。
+chosen: |
+  TrackerConfig.endpoint → serverUrl(服务器基址)。SDK 内部 resolveCollectUrl()
+  统一拼接 /api/v1/collect;GateFlow base 用 serverUrl,user/init 路径自然正确。
+  为降低迁移成本,resolveCollectUrl 容忍传入已含 /api/v1/collect 的完整 URL。
+rejected:
+  - "保持 endpoint 不变只补文档:无法根治调用方易错 + GateFlow 双拼,价值有限(用户已选破坏性变更)"
+  - "同时支持 endpoint 与 serverUrl 两字段:契约含糊,长期维护负担,YAGNI"
+rationale: |
+  serverUrl 基址 + 自动拼接是行业 SDK 惯例,更难用错;容忍完整 URL 提供平滑迁移。
+migration: |
+  调用方将 `endpoint: 'https://x/api/v1/collect'` 改为 `serverUrl: 'https://x'`。
+  暂传完整 collect URL 仍可工作(向后容忍),但建议改为基址。
+constraints_ref:
+  - "dod.yaml: escalation.decisions_needing_human=breaking_api_change(已人工确认)"
+impact:
+  files:
+    - "tracker-sdk/src/types/EventTypes.ts"
+    - "tracker-sdk/src/tracker/Tracker.ts"
+    - "tracker-sdk/src/__tests__/Tracker.test.ts"
+    - "README.md"
+  risk: "medium"

@@ -69,7 +69,12 @@ export interface EventData {
 
 export interface TrackerConfig {
   appId: string;
-  endpoint: string;
+  /**
+   * Base URL of the tracker server, e.g. `https://tracker.example.com`.
+   * The SDK appends the collect path (`/api/v1/collect`) automatically.
+   * A full collect URL is also tolerated for backward compatibility.
+   */
+  serverUrl: string;
   autoTrack?: AutoTrackConfig;
   batch?: BatchConfig;
   offline?: OfflineConfig;

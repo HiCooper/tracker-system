@@ -18,7 +18,18 @@ import { Sender } from '../sender/Sender';
 import { GateFlowIntegration } from '../integration/GateFlowIntegration';
 
 const SDK_VERSION = '1.0.0';
+const COLLECT_PATH = '/api/v1/collect';
 const IMMEDIATE_EVENT_TYPES: EventType[] = ['exposure', 'click'];
+
+/**
+ * Resolve the event-collect URL from the configured serverUrl base.
+ * Appends `/api/v1/collect` unless a full collect URL was already provided.
+ */
+export function resolveCollectUrl(serverUrl: string): string {
+  const base = serverUrl.replace(/\/+$/, '');
+  if (/\/api\/v1\/collect$/.test(base)) return base;
+  return `${base}${COLLECT_PATH}`;
+}
 
 export type EventCallback = (event: EventDTO) => void;
 
@@ -29,6 +40,7 @@ interface Collector {
 
 export class Tracker {
   private config: Required<TrackerConfig>;
+  private collectUrl: string;
   private queue: EventQueue;
   private sender: Sender;
   private collectors: Collector[] = [];
@@ -37,7 +49,7 @@ export class Tracker {
 
   constructor(config: TrackerConfig) {
     this.config = {
-      endpoint: config.endpoint,
+      serverUrl: config.serverUrl,
       appId: config.appId,
       autoTrack: config.autoTrack ?? {},
       batch: config.batch ?? { maxSize: 50, interval: 2000 },
@@ -46,14 +58,17 @@ export class Tracker {
       gateFlow: config.gateFlow ?? { enabled: false },
     };
 
+    // Resolve the collect endpoint once from the serverUrl base.
+    this.collectUrl = resolveCollectUrl(this.config.serverUrl);
+
     this.queue = new EventQueue(this.config.offline);
-    this.sender = new Sender(this.config.endpoint, this.queue);
+    this.sender = new Sender(this.collectUrl, this.queue);
 
     // GateFlow integration for userId + experiment tags
     if (this.config.gateFlow.enabled) {
       const gfEndpoint =
         this.config.gateFlow.userInitEndpoint ||
-        this.config.endpoint;
+        this.config.serverUrl;
       this.gateFlow = new GateFlowIntegration(gfEndpoint);
     }
 
@@ -68,7 +83,7 @@ export class Tracker {
           ? this.config.autoTrack.pageView
           : {};
       this.collectors.push(
-        new PageCollector(pageConfig, (data) => this.track('page_view', data), this.config.endpoint)
+        new PageCollector(pageConfig, (data) => this.track('page_view', data), this.collectUrl)
       );
     }
 
@@ -137,7 +152,7 @@ export class Tracker {
    */
   async init(): Promise<void> {
     console.log('[Tracker] Initializing with config:', {
-      endpoint: this.config.endpoint,
+      endpoint: this.collectUrl,
       appId: this.config.appId,
       autoTrack: Object.keys(this.config.autoTrack),
       batch: this.config.batch,
@@ -169,17 +184,17 @@ export class Tracker {
     // Network recovery: flush queue when back online
     window.addEventListener('online', () => {
       console.log('[Tracker] Network online, flushing queue');
-      this.queue.flush(this.config.endpoint);
+      this.queue.flush(this.collectUrl);
     });
 
     // Drain the queue on page hide / unload so pending click/scroll/stay/error
     // events are not lost when the tab closes. sendBeacon survives unload.
     window.addEventListener('pagehide', () => {
-      this.queue.flushBeacon(this.config.endpoint);
+      this.queue.flushBeacon(this.collectUrl);
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
-        this.queue.flushBeacon(this.config.endpoint);
+        this.queue.flushBeacon(this.collectUrl);
       }
     });
 
@@ -208,7 +223,7 @@ export class Tracker {
     if (IMMEDIATE_EVENT_TYPES.includes(eventType)) {
       // flushImmediate resolves false (it does not reject) on failure — re-enqueue
       // so the event is retried by the periodic flush instead of being silently lost.
-      this.queue.flushImmediate(event, this.config.endpoint).then((ok) => {
+      this.queue.flushImmediate(event, this.collectUrl).then((ok) => {
         if (!ok) {
           this.queue.enqueue(event);
         }
@@ -272,7 +287,7 @@ export class Tracker {
    * Immediately flush the event queue to the server.
    */
   async flush(): Promise<void> {
-    await this.queue.flush(this.config.endpoint);
+    await this.queue.flush(this.collectUrl);
   }
 
   /**
