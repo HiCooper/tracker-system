@@ -1,0 +1,25 @@
+id: "D-20260616-008"
+timestamp: "2026-06-16T13:30:00"
+topic: "MonitorController 接真实数据,替换桩数据"
+context: >
+  管理端监控页约 90% 为桩数据(ClickHouse 健康恒报 UP、pipeline/dataQuality/errors 全 0),
+  误导运维。需在不破坏前端契约、无新基础设施的前提下接真实数据。
+chosen: >
+  新增 MonitorService:管道/数据质量/错误列表直查 ClickHouse events;ClickHouse 健康真实探测;
+  采集侧 DLQ best-effort 拉取 tracker-service /health(可配 base-url);无来源的 Web Vitals/API 统计
+  显式 available=false;保留 alerts/quality 端点契约返回空/未实现标记避免前端 404。
+rejected:
+  - "继续返回桩数据: 误导运维,违背评估要求"
+  - "删除无来源端点: 前端调用会 404 破坏页面;改为保留契约+明确标注未实现"
+  - "在 admin 直接读 Kafka/Redis 拿 dlq/lag: 跨越服务边界、admin 无相应连接;改为拉采集服务 /health"
+rationale: >
+  以 ClickHouse 为真实分析源,跨服务只读 /health 获取采集侧 DLQ,既真实又不越界;
+  对确无来源的指标诚实标注,优于编造。
+constraints_ref:
+  - "launch-readiness-assessment.md §3.4 P1#6(MonitorController 假数据)"
+  - "constraints.yaml: api_backward_compat(端点契约保留)"
+impact:
+  files:
+    - "tracker-admin: service/MonitorService(新), controller/MonitorController, application.yml, MonitorServiceTest"
+    - "docker-compose.yml: admin 注入 TRACKER_SERVICE_BASE_URL"
+  risk: "low"
