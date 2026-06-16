@@ -1,8 +1,26 @@
-import type { EventDTO } from '../types/EventTypes';
+import type { EventDTO, CollectRequest, CollectResponse } from '../types/EventTypes';
 import type { OfflineConfig } from '../types/EventTypes';
 
 interface QueueEntry extends EventDTO {
   _retryCount?: number;
+}
+
+/**
+ * Auth context provided by the Tracker before each HTTP request.
+ * Using getter functions so the EventQueue always reads the latest token
+ * (which may have been refreshed since the last request).
+ *
+ * Two auth paths:
+ * - {@code getSdkToken} — JWT for Server SDK (sends X-Sdk-Token header)
+ * - {@code getAppKey} — write-only key for Browser SDK (sends X-App-Key header)
+ * The SDK token takes precedence when both are available.
+ */
+export interface AuthContext {
+  getSdkToken(): string | null;
+  getAppKey(): string | null;
+  getClientId(): string;
+  /** Called by EventQueue when server returns 401. */
+  onAuthFailed?(): void;
 }
 
 const STORAGE_KEY = 'gf_tracker_queue';
@@ -11,10 +29,16 @@ export class EventQueue {
   private queue: QueueEntry[] = [];
   private maxSize: number;
   private maxRetries: number = 3;
+  private auth: AuthContext | null = null;
 
   constructor(config: OfflineConfig) {
     this.maxSize = config.maxQueueSize ?? 100;
     this.loadFromStorage();
+  }
+
+  /** Set the auth context for all subsequent HTTP requests. */
+  setAuthContext(auth: AuthContext | null): void {
+    this.auth = auth;
   }
 
   enqueue(event: EventDTO): void {
@@ -73,45 +97,80 @@ export class EventQueue {
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events }),
+        headers: this.buildHeaders(),
+        body: JSON.stringify(this.buildBody(events)),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      let result: CollectResponse = { code: response.status, message: '' };
+      try {
+        result = await response.json();
+      } catch { /* non-JSON — fall through to status check */ }
+
+      if (response.ok && (result.code === 200 || result.code === 0)) {
+        const d = result.data;
+        console.log(`[Tracker] Sent ${events.length} events — `
+          + `accepted=${d?.accepted ?? '?'} duplicate=${d?.duplicate ?? '?'} rejected=${d?.rejected ?? '?'}`);
+        return true;
       }
 
-      console.log(`[Tracker] Successfully sent ${events.length} events`);
-      return true;
+      if (response.status === 401) {
+        console.warn('[Tracker] Auth failed (401)');
+        this.auth?.onAuthFailed?.();
+        this.enqueueBatch(events);
+        return false;
+      }
+
+      throw new Error(`HTTP ${response.status}: ${result.message}`);
     } catch (error) {
       console.error('[Tracker] Failed to flush events:', error);
-      // Re-enqueue on failure
       this.enqueueBatch(events);
       return false;
     }
   }
 
   /**
-   * Flush the queue using navigator.sendBeacon — survives page unload, unlike fetch.
-   * Falls back to async flush when sendBeacon is unavailable. Re-enqueues on failure.
+   * Flush the queue on page unload using fetch + keepalive so auth
+   * headers are included (unlike sendBeacon which cannot set custom headers).
+   * Falls back to sendBeacon when fetch keepalive is unavailable.
+   * Re-enqueues to localStorage on failure so events survive the unload.
    */
   flushBeacon(endpoint: string): void {
     if (this.queue.length === 0) return;
 
-    if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') {
-      void this.flush(endpoint);
-      return;
+    const events = this.drain();
+    const headers = this.buildHeaders();
+    const payload = JSON.stringify(this.buildBody(events));
+
+    // Prefer fetch+keepalive so auth headers are sent.
+    // Supported in Chrome 66+, Firefox 66+, Safari 13+.
+    if (typeof fetch === 'function') {
+      try {
+        fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: payload,
+          keepalive: true,
+        }).catch(() => {
+          this.enqueueBatch(events);
+        });
+        return;
+      } catch {
+        // Fall through to sendBeacon
+      }
     }
 
-    const events = this.drain();
-    try {
-      const blob = new Blob([JSON.stringify({ events })], { type: 'application/json' });
-      const ok = navigator.sendBeacon(endpoint, blob);
-      if (!ok) {
+    // Fallback: sendBeacon (no custom headers — token is lost)
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      try {
+        const blob = new Blob([payload], { type: 'application/json' });
+        const ok = navigator.sendBeacon(endpoint, blob);
+        if (!ok) {
+          this.enqueueBatch(events);
+        }
+      } catch {
         this.enqueueBatch(events);
       }
-    } catch (error) {
-      console.error('[Tracker] sendBeacon flush failed:', error);
+    } else {
       this.enqueueBatch(events);
     }
   }
@@ -124,25 +183,59 @@ export class EventQueue {
   async flushImmediate(event: EventDTO, endpoint: string): Promise<boolean> {
     console.log(`[Tracker] Immediately flushing ${event.eventType} event: ${event.eventId}`);
 
-
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: [event] }),
+        headers: this.buildHeaders(),
+        body: JSON.stringify(this.buildBody([event])),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      let result: CollectResponse = { code: response.status, message: '' };
+      try {
+        result = await response.json();
+      } catch { /* non-JSON */ }
+
+      if (response.ok && (result.code === 200 || result.code === 0)) {
+        console.log(`[Tracker] Successfully sent immediate ${event.eventType} event`);
+        return true;
       }
 
-      console.log(`[Tracker] Successfully sent immediate ${event.eventType} event`);
-      return true;
+      if (response.status === 401) {
+        console.warn('[Tracker] Auth failed (401) on immediate flush');
+        this.auth?.onAuthFailed?.();
+        return false;
+      }
+
+      throw new Error(`HTTP ${response.status}: ${result.message}`);
     } catch (error) {
       console.error('[Tracker] Failed to flush immediate event:', error);
-      // Event already in queue, will be retried by periodic flush
       return false;
     }
+  }
+
+  /** Build auth headers for a collect request. */
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Timestamp': String(Date.now()),
+    };
+    const token = this.auth?.getSdkToken();
+    if (token) {
+      headers['X-Sdk-Token'] = token;
+    } else {
+      const appKey = this.auth?.getAppKey();
+      if (appKey) {
+        headers['X-App-Key'] = appKey;
+      }
+    }
+    return headers;
+  }
+
+  private buildBody(events: EventDTO[]): CollectRequest {
+    return {
+      events,
+      clientId: this.auth?.getClientId(),
+    };
   }
 
   private saveToStorage(): void {

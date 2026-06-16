@@ -75,6 +75,30 @@ export interface TrackerConfig {
    * A full collect URL is also tolerated for backward compatibility.
    */
   serverUrl: string;
+  /**
+   * Pre-obtained JWT SDK token (from tracker-admin).
+   * The application backend obtains this token with its apiKey and injects
+   * it into the page. This is the recommended production approach — do NOT
+   * embed apiKey/appKey in browser code.
+   *
+   * When provided, the SDK sends it as the `X-Sdk-Token` header on every
+   * collect request.  The server requires this header and returns 401
+   * without it.
+   */
+  sdkToken?: string;
+  /**
+   * Application key for auto-authentication.  For development/demo use
+   * only — embedding appKey in browser code exposes it to users.
+   * When provided (and sdkToken is absent), the SDK will call
+   * POST /api/v1/collect/auth to exchange it for a JWT token.
+   */
+  appKey?: string;
+  /**
+   * Client identifier for multi-tenant tracking, e.g. `"web-app"`,
+   * `"order-service"`.  Sent in the collect request body so the server
+   * can partition events by source.  Matches the Java SDK `clientId`.
+   */
+  clientId?: string;
   autoTrack?: AutoTrackConfig;
   batch?: BatchConfig;
   offline?: OfflineConfig;
@@ -158,3 +182,23 @@ export type EventType =
   | 'session_start'
   | 'session_end'
   | 'session_heartbeat';
+
+// ── Wire format (aligns with server EventRequest / EventResponse) ──
+
+/** Request body for POST /api/v1/collect.  Mirrors Java SDK CollectRequest. */
+export interface CollectRequest {
+  events: EventDTO[];
+  clientId?: string;
+}
+
+/** Response body from POST /api/v1/collect.  Mirrors server EventResponse. */
+export interface CollectResponse {
+  code: number;
+  message: string;
+  data?: {
+    accepted: number;
+    duplicate: number;
+    rejected: number;
+    dlq: number;
+  };
+}
