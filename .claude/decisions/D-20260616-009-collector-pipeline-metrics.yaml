@@ -1,0 +1,25 @@
+id: "D-20260616-009"
+timestamp: "2026-06-16T13:45:00"
+topic: "采集侧管道指标(DLQ/去重命中率)经 /health 暴露给监控页"
+context: >
+  监控页的 dlqSize/dedupRate 归属采集服务(Redis/Caffeine),管理服务无直接连接。
+  需要一条只读、跨服务、可验证的通道把这些指标接入监控页。
+chosen: >
+  tracker-service /health 增加结构化 pipeline 段(dlqSize, dedupHitRate);
+  tracker-admin MonitorService 拉取并解析该段填充监控页;kafkaLag 因需 Kafka AdminClient
+  且本地不可验证,继续标注未采集。
+rejected:
+  - "admin 直连 Redis/Kafka 读指标: 越过服务边界、admin 无相应客户端"
+  - "admin 解析采集服务 /actuator/prometheus 文本: 解析脆弱;/health JSON 更稳定"
+  - "为 kafkaLag 引入 AdminClient: 本地无 Kafka 无法验证,留作后续"
+rationale: >
+  以采集服务自有的 /health 作为单一只读出口,JSON 结构稳定、向后兼容、可单测;
+  指标来源清晰、不越界。
+constraints_ref:
+  - "launch-readiness-assessment.md §3.4 P1#6"
+  - "constraints.yaml: api_backward_compat(/health 保留旧字段)"
+impact:
+  files:
+    - "tracker-service: api/HealthController + 测试"
+    - "tracker-admin: service/MonitorService + 测试"
+  risk: "low"
