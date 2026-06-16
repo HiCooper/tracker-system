@@ -106,6 +106,8 @@ services:
       CLICKHOUSE_PASSWORD: ""
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      # 监控页拉取采集服务 DLQ 等指标
+      TRACKER_SERVICE_BASE_URL: http://tracker-service:8088
     depends_on:
       mysql:
         condition: service_healthy
