@@ -1,0 +1,30 @@
+id: "D-20260616-006"
+timestamp: "2026-06-16T02:30:00"
+topic: "生产级可观测性、采集端硬化与 CI 流水线补齐"
+context: >
+  P0 修复后系统功能可用,但缺乏企业级生产要素:无任何 CI(三仓库 0 check)、
+  管道指标只进日志无法被监控采集、健康检查降级仍返回 200、采集批量无上限、无统一异常处理。
+chosen: >
+  - 可观测性:引入 micrometer-registry-prometheus,新增 PipelineMetrics(accept/dup/reject/dlq 计数 +
+    DLQ 积压/去重命中率 gauge),接入 EventController;暴露 /actuator/prometheus 与 K8s 健康探针。
+  - 健康:HealthController 依赖不可用时返回 503;新增 ClickHouse HealthIndicator 纳入 actuator 聚合。
+  - 硬化:EventRequest 批量上限 @Size(500);新增 GlobalExceptionHandler 统一校验/解析/兜底响应形状。
+  - CI:为 tracker-service / tracker-admin / 父仓库(SDK+前端)各加 GitHub Actions(mvn verify / npm build);
+    tracker-service 额外加 ClickHouse Testcontainers 集成 job(RUN_CH_IT=true,CI 中可拉镜像)。
+rejected:
+  - "用 spring-boot-actuator 默认指标即可: 业务级 accept/reject/dlq/dedup 指标默认不存在,需自定义"
+  - "健康降级仍返回 200: 编排探针无法摘除坏实例,违背生产可用性"
+  - "批量不设上限: 超大请求体是放大攻击/内存压力向量"
+  - "CI 只跑单测: 关键 ClickHouse 写入路径需真实集成验证,故在 CI 加 Testcontainers job"
+rationale: >
+  以最小侵入补齐「可观测、可探活、可防滥用、可持续集成」四项生产基线,且全部经 mvn/npm 本地验证可过;
+  Testcontainers IT 在 CI(可访问镜像仓库)中跑,弥补本地受限网络无法拉镜像的缺口。
+constraints_ref:
+  - "launch-readiness-assessment.md §3.3 P1/P2(指标/健康/限流)"
+  - "dod.yaml: quality(测试与门禁)/ documentation"
+  - "constraints.yaml: no_new_deps_without_adr(micrometer-registry-prometheus 已在此论证)"
+impact:
+  files:
+    - "tracker-service: PipelineMetrics, GlobalExceptionHandler, ClickHouseHealthIndicator, HealthController, EventController, EventRequest, pom.xml, application.yml, +4 测试"
+    - "tracker-service/.github, tracker-admin/.github, .github: CI 工作流"
+  risk: "low"
