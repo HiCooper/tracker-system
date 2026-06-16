@@ -1,0 +1,21 @@
+id: "D-20260616-007"
+timestamp: "2026-06-16T13:10:00"
+topic: "跨服务请求关联 ID(X-Request-Id)追踪"
+context: >
+  已补齐指标(Prometheus)与健康探针,但缺少把一次请求串联到各层日志的能力,生产排障困难。
+chosen: >
+  在 tracker-service 与 tracker-admin 各加最高优先级 RequestIdFilter:透传/生成 X-Request-Id,
+  写入 SLF4J MDC,回写响应头,请求结束清理 MDC;日志模式追加 [application,requestId]。
+  入站 ID 做白名单字符+限长校验防日志注入。
+rejected:
+  - "引入 Micrometer Tracing/OpenTelemetry 全链路: 需 collector/后端基础设施,超出当前范围;先用轻量 MDC 关联 ID"
+  - "仅生成不透传: 无法跨服务串联(SDK→采集→管理),失去追踪价值"
+rationale: >
+  零新依赖、可单测、低风险地补齐「指标+健康+追踪」可观测性三件套;后续接入 OTel 时该 ID 可平滑过渡为 traceId。
+constraints_ref:
+  - "dod.yaml: quality / documentation"
+  - "constraints.yaml: no_new_deps_without_adr(未引入新依赖)"
+impact:
+  files:
+    - "tracker-service/admin: web/RequestIdFilter + 日志模式 + RequestIdFilterTest"
+  risk: "low"
