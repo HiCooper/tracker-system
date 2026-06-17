@@ -1,0 +1,29 @@
+id: "D-20260616-013"
+timestamp: "2026-06-16T16:20:00"
+topic: "隐私合规基线:同意门控 + PII 掩码/哈希 + 被遗忘权(路线图 ②)"
+context: >
+  事件中的 userId/PII 直接落 ClickHouse,无脱敏、无同意校验、无删除能力,不满足 GDPR/CCPA/PIPL,
+  是 ToB 采购的硬门槛。
+chosen: >
+  采集侧(tracker-service):入口处 PrivacyService 做同意门控(consent=false 剥离 PII)+ PII 字段/userId
+  SHA-256 哈希 + 邮箱/手机号启发式掩码,默认全关(非破坏),打点 pii_masked/consent_denied。
+  管理侧(tracker-admin):AdminPrivacyService 对 events/sessions 提交 ClickHouse ALTER DELETE,
+  DELETE /api/v1/privacy/users/{id} 仅 admin,自动入审计。
+rejected:
+  - "在 SDK 端脱敏: 客户端不可信;治理必须在服务端入口"
+  - "可逆加密 PII: 合规要求最小化可识别性,哈希(不可逆)更稳妥"
+  - "默认开启脱敏: 会影响既有分析口径;先默认关闭,按 app/合规要求开启"
+  - "物理删除用 DROP PARTITION: 粒度太粗会误删他人数据;按 user_id 行级 mutation 精确"
+rationale: >
+  入口集中治理 + 不可逆哈希 + 行级删除,既满足合规又把对既有口径的影响降到最低(默认关闭、可灰度)。
+constraints_ref:
+  - "docs-site/dev/roadmap.md ②"
+  - "constraints.yaml: api_backward_compat(默认关闭非破坏)"
+known_gaps:
+  - "consent 需 SDK 上报支持;PII 字段标注后续可由埋点方案(Plan)的 pii 标记驱动"
+  - "ClickHouse mutation 异步,删除完成时间不确定;端到端需 CH 验证"
+impact:
+  files:
+    - "tracker-service: api/dto/EventDTO, service/PrivacyService, EventController, PipelineMetrics, TrackerProperties"
+    - "tracker-admin: service/AdminPrivacyService, controller/PrivacyController"
+  risk: "medium"
