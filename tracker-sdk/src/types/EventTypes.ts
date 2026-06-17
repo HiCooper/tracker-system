@@ -181,7 +181,8 @@ export type EventType =
   | 'custom'
   | 'session_start'
   | 'session_end'
-  | 'session_heartbeat';
+  | 'session_heartbeat'
+  | '$identify';
 
 // ── Wire format (aligns with server EventRequest / EventResponse) ──
 

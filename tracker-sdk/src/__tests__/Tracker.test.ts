@@ -124,6 +124,42 @@ describe('Tracker', () => {
     tracker.destroy();
   });
 
+  it('emits a $identify event with userId and anonymousId', async () => {
+    const tracker = new Tracker({
+      appId: 'test-app',
+      serverUrl: 'http://localhost:8088',
+      autoTrack: { pageView: false, click: false, exposure: false, scroll: false },
+    });
+    await tracker.init();
+
+    const events: any[] = [];
+    tracker.onTrack((event) => events.push(event));
+    tracker.identify('user-789');
+
+    const idEvent = events.find((e) => e.eventType === '$identify');
+    expect(idEvent).toBeDefined();
+    expect(idEvent.userId).toBe('user-789');
+    expect(idEvent.anonymousId).toBeTruthy();
+
+    tracker.destroy();
+  });
+
+  it('identify with empty userId is a no-op', async () => {
+    const tracker = new Tracker({
+      appId: 'test-app',
+      serverUrl: 'http://localhost:8088',
+      autoTrack: { pageView: false, click: false, exposure: false, scroll: false },
+    });
+    await tracker.init();
+
+    const events: any[] = [];
+    tracker.onTrack((event) => events.push(event));
+    tracker.identify('');
+
+    expect(events.find((e) => e.eventType === '$identify')).toBeUndefined();
+    tracker.destroy();
+  });
+
   it('should track page_view events', async () => {
     const tracker = new Tracker({
       appId: 'test-app',

@@ -137,6 +137,24 @@ public class GateFlowClient {
     }
 
     /**
+     * Identity stitching — link an anonymous id to a known user id by emitting a
+     * {@code $identify} event. The server records the {@code anonymousId -> userId}
+     * mapping so subsequent anonymous events can be attributed to the user.
+     *
+     * @return true if the identify event was enqueued
+     */
+    public boolean identify(String anonymousId, String userId) {
+        if (anonymousId == null || anonymousId.isBlank()
+                || userId == null || userId.isBlank()) {
+            return false;
+        }
+        return track(TrackEvent.builder("$identify")
+                .anonymousId(anonymousId)
+                .userId(userId)
+                .build());
+    }
+
+    /**
      * Immediately send all buffered events (synchronous).
      * @return summary of what was sent
      */
