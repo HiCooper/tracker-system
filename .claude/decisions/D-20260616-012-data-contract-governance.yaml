@@ -1,0 +1,30 @@
+id: "D-20260616-012"
+timestamp: "2026-06-16T15:40:00"
+topic: "数据契约治理:埋点方案编译为契约 + 采集入口校验(路线图 ①)"
+context: >
+  采集入口此前只校验 3 个非空字段,任何事件/字段照单全收,是 SDK↔服务端契约漂移的根因;
+  而 admin 的埋点方案审批工作流与实际采集完全脱节。需要「事件即契约」闭环。
+chosen: >
+  发布侧(admin):Plan 上线编译为 AppSchema JSON,写 Redis tracker:schema:{appCode}。
+  校验侧(service):SchemaRegistry 从 Redis 读契约(Caffeine 缓存、失败直通);EventValidator 校验
+  漂移/必填/类型;按 tracker.schema.mode(off/monitor/enforce)裁决,违规打点 schema_violation,
+  enforce 下进隔离区。默认 monitor(非破坏)。
+rejected:
+  - "服务间用 HTTP 实时拉契约: 采集热路径不宜同步外呼;Redis + 本地缓存更快更稳"
+  - "在 SDK 端做校验: 客户端不可信、无法治理;治理必须在服务端入口"
+  - "enforce 作默认: 会误伤未发布契约的 app;先 monitor 灰度,再按 app 切 enforce"
+  - "为契约新建独立存储/Schema Registry 组件: 现阶段复用 Redis 足够,避免过度设计(YAGNI)"
+rationale: >
+  复用既有埋点方案工作流与共享 Redis,最小代价闭环契约治理;monitor 默认保证上线非破坏,
+  enforce 提供强约束能力;失败一律降级直通,绝不影响采集可用性。
+constraints_ref:
+  - "docs-site/dev/roadmap.md ①"
+  - "constraints.yaml: api_backward_compat(默认 monitor 非破坏)"
+known_gaps:
+  - "契约 key=appCode 与采集侧 appKey=clientId 需身份模型统一(约定 SDK clientId=appCode)"
+  - "端到端原子性/绑定需 Redis 环境或 Testcontainers 验证"
+impact:
+  files:
+    - "tracker-service: model/AppSchema, validation/*(EventValidator/SchemaRegistry/SchemaValidationService), EventController, PipelineMetrics, TrackerProperties"
+    - "tracker-admin: domain/dto/AppSchemaDto, service/SchemaCompiler+SchemaPublishService, config/SchemaRedisConfig, PlanService/Controller"
+  risk: "medium"
