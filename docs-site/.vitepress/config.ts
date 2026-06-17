@@ -19,6 +19,7 @@ export default withMermaid(defineConfig({
     nav: [
       { text: '产品指南', link: '/guide/', activeMatch: '^/guide/' },
       { text: '技术架构', link: '/dev/', activeMatch: '^/dev/' },
+      { text: '演进路线', link: '/dev/roadmap' },
       { text: '内部资料', link: '/knowledge/', activeMatch: '^/knowledge/' },
     ],
 
@@ -35,6 +36,12 @@ export default withMermaid(defineConfig({
         },
       ],
       '/dev/': [
+        {
+          text: '平台演进',
+          items: [
+            { text: '演进路线图', link: '/dev/roadmap' },
+          ],
+        },
         {
           text: '系统架构',
           items: [
