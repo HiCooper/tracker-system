@@ -1,0 +1,25 @@
+id: "D-20260616-015"
+timestamp: "2026-06-16T17:50:00"
+topic: "身份解析 Identity Stitching:anonymousId→userId 缝合(路线图 ④)"
+context: >
+  userId 与 anonymousId 是两个独立列,无身份图把登录前匿名行为与登录后用户缝合,
+  导致漏斗/留存/归因在「匿名→登录」跨越点断裂、重复计数。
+chosen: >
+  采集侧:IdentityService 用 Redis 维护 anonymousId→userId 映射(TTL 可配);EventController 处理
+  $identify 控制事件建立映射,普通事件已识别则建映射、匿名缺 userId 则回填。默认开启、仅回填缺失字段。
+rejected:
+  - "查询时全量 join 身份表: 大数据量 join 代价高;入口回填 + 后续 coalesce 更可控"
+  - "改写历史已落库事件: ClickHouse 行级改写代价高;采取前向缝合 + 查询侧 coalesce(后续)"
+  - "默认关闭: 身份缝合是分析正确性基础且严格增量(只回填空 userId),默认开启更合理"
+rationale: >
+  Redis O(1) 映射 + 入口前向回填,以最小代价让后续事件正确归属用户;失败降级不影响采集。
+constraints_ref:
+  - "docs-site/dev/roadmap.md ④"
+  - "constraints.yaml: api_backward_compat(仅回填缺失字段,非破坏)"
+known_gaps:
+  - "SDK 端 $identify 上报需补;查询侧历史数据 coalesce 解析为后续"
+  - "端到端需 Redis 验证"
+impact:
+  files:
+    - "tracker-service: service/IdentityService, EventController, TrackerProperties, PipelineMetrics"
+  risk: "low"
