@@ -1,0 +1,24 @@
+id: "D-20260616-011"
+timestamp: "2026-06-16T14:40:00"
+topic: "活跃会话态从 ClickHouse 迁至 Redis(结构修正 A)"
+context: >
+  活跃会话态此前放在 ClickHouse(ReplacingMergeTree)做读-改-写 + JVM 内锁:跨副本计数不正确、
+  findById 无 FINAL 读到未合并脏行。需要一个跨副本正确、原子的活跃态存储。
+chosen: >
+  活跃会话态迁 Redis Hash:计数走原子 HINCRBY、scrollMax 走 Lua 取大、ZSET 按 lastActive 排序;
+  无 JVM 锁;会话结束/超时由 cleanup 任务一次性把终态写 ClickHouse(只写一次),落库失败保留待重试。
+rejected:
+  - "继续用 ClickHouse RMW + FINAL 读: ReplacingMergeTree 不适合高频可变计数,FINAL 代价高且仍有竞争"
+  - "用分布式锁(Redisson)串行化 CH 写: 复杂且高延迟;Redis 原子计数本身即可消除竞争"
+  - "维持 JVM 锁: 仅单实例有效,多副本部署下错误"
+rationale: >
+  Redis 单线程原子操作天然消除并发读改写竞争,跨副本一致;ClickHouse 仅承接不可变的会话终态,
+  契合 ReplacingMergeTree 一次写入语义。
+constraints_ref:
+  - "launch-readiness-assessment.md §1 结构修正 A"
+  - "constraints.yaml: no_raw_sql_in_application_layer(活跃态不再走 SQL)"
+impact:
+  files:
+    - "tracker-service: repository/SessionStore(新), service/SessionService, scheduler/SessionCleanupTask, repository/SessionRepository, +测试"
+  risk: "medium"
+  verification: "本地单测覆盖逻辑与 Redis 调用契约;端到端原子性需在有 Redis 的环境验证"
