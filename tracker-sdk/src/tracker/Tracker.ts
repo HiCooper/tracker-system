@@ -299,9 +299,20 @@ export class Tracker {
    * Identify the current user. Call after login or when user ID is known.
    */
   identify(userId: string): void {
+    if (!userId) {
+      return;
+    }
     if (this.gateFlow) {
       this.gateFlow.identify(userId);
     }
+    // 发送 $identify 事件,让服务端建立 anonymousId→userId 映射(身份缝合)。
+    // 显式设置 userId,避免 gateFlow 异步导致 buildEvent 取不到最新 userId。
+    const event = this.buildEvent('$identify');
+    event.userId = userId;
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
+    this.queue.enqueue(event);
   }
 
   /**

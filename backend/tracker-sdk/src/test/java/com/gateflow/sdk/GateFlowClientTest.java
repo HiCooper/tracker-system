@@ -105,6 +105,21 @@ class GateFlowClientTest {
     }
 
     @Test
+    void identifyEnqueuesIdentifyEvent() {
+        GateFlowClient client = GateFlowClient.builderLocalhost().flushIntervalSec(60).build();
+
+        assertTrue(client.identify("anon_1", "user_1"));
+        assertEquals(1, client.queueSize());
+
+        // 缺失任一 id 不入队
+        assertFalse(client.identify("anon_1", ""));
+        assertFalse(client.identify(null, "user_1"));
+        assertEquals(1, client.queueSize());
+
+        client.shutdown();
+    }
+
+    @Test
     void trackAll() {
         GateFlowClient client = GateFlowClient.builderLocalhost()
                 .flushIntervalSec(60)
