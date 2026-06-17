@@ -1,0 +1,28 @@
+id: "D-20260616-014"
+timestamp: "2026-06-16T17:10:00"
+topic: "数据质量监控 + 告警引擎(异常检测/规则/通知/历史)(路线图 ③)"
+context: >
+  监控页虽接真实数据,但告警/质量端点仍是空壳。埋点平台最致命的盲区是「数据静默地错了」——
+  某 app 埋点打挂导致事件骤降时系统毫无感知。需要异常检测 + 告警闭环。
+chosen: >
+  规则驱动的评估引擎:tracker_alert_rule/tracker_alert_event 表;AlertEvaluator 纯函数评估
+  event_volume_drop(同比基线跌幅)/error_rate/null_rate;@Scheduled job 逐规则取 ClickHouse 指标 →
+  评估 → 记录历史 + webhook 通知。规则 CRUD 接入既有 /monitor/alerts 端点。
+rejected:
+  - "接入 Prometheus Alertmanager: 需额外基础设施;内置规则引擎对单体平台更轻量自洽"
+  - "实时流式检测(Kafka/Flink): 过重;@Scheduled 周期评估满足分钟级 SLA"
+  - "只发日志不入库/不通知: 无法形成可追溯告警闭环"
+  - "冷启动无基线时按 0 处理→告警: 会误报;改为无基线不告警"
+rationale: >
+  以最小依赖(MySQL 规则 + CH 指标 + @Scheduled + webhook)实现可用的异常检测闭环;
+  纯函数评估器易测,CH 查询层薄;同比基线避免昼夜周期误报。
+constraints_ref:
+  - "docs-site/dev/roadmap.md ③"
+  - "launch-readiness-assessment.md §3.4 P1#6(MonitorController 假数据)"
+known_gaps:
+  - "events 无 app 维度,当前全局口径;按 app 细分需先加 app 维度"
+  - "通知仅 webhook;邮件/钉钉后续扩展。端到端需 CH 验证"
+impact:
+  files:
+    - "tracker-admin: db/migration/V7, entity/TrackerAlertRule+Event, repository/*Mapper, service/AlertEvaluator+MetricQueryService+AlertNotifier+AlertService, scheduler/AlertEvaluationJob, controller/AlertController, MonitorController"
+  risk: "medium"
