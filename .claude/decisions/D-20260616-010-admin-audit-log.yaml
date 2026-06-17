@@ -1,0 +1,20 @@
+id: "D-20260616-010"
+timestamp: "2026-06-16T14:10:00"
+topic: "管理操作审计日志(拦截器 + MySQL 表 + 查询 API)"
+context: >
+  企业级合规要求可追溯「谁在何时对什么资源做了什么变更」。系统此前无任何审计能力。
+  本项涉及一次新增 schema 迁移(decisions_needing_human),用户已明确选择实施。
+chosen: >
+  以 HandlerInterceptor.afterCompletion 统一记录 /api/v1 下的变更类操作(POST/PUT/DELETE/PATCH),
+  落 MySQL tracker_audit_log(V6 迁移);审计失败不影响主流程;提供 admin-only 分页查询接口。
+rejected:
+  - "AOP 切面按 Service 方法审计: 难以拿到 HTTP 状态/IP/requestId,且需逐方法标注;拦截器更贴近请求语义"
+  - "仅写日志文件不入库: 不可查询/检索,达不到合规取证要求"
+  - "同步 + 抛错: 审计失败不应影响业务,故 record 内吞异常(由 DLQ/告警另行兜底)"
+constraints_ref:
+  - "dod.yaml: decisions_needing_human(database_schema_migration)—已记录并经用户确认"
+  - "constraints.yaml: api_backward_compat(仅新增端点/表,不破坏既有)"
+impact:
+  files:
+    - "tracker-admin: db/migration/V6, entity/TrackerAuditLog, repository/TrackerAuditLogMapper, service/AuditLogService, security/AuditInterceptor, config/WebMvcConfig, controller/AuditController, +2 测试"
+  risk: "low"
