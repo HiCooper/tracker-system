@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Breadcrumb, Table, Button, Input, Select, Statistic, Space, Divider, message, Spin } from 'antd';
 import { HomeOutlined, PlusOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { Link, useParams } from 'react-router-dom';
+import { AdvancedNav } from './AdvancedNav';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdvancedAnalysisStore } from '../../../stores/advancedAnalysisStore';
 import { useSetupStore } from '../../../stores/setupStore';
@@ -84,6 +85,8 @@ export function FunnelAnalysisPage() {
         { title: appName || appCode || '' },
         { title: '漏斗分析' },
       ]} />
+
+      <AdvancedNav appCode={appCode} active="funnel" />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>漏斗分析 {appName ? `— ${appName}` : ''}</Title>

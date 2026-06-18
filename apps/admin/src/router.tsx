@@ -23,6 +23,11 @@ const DebugPage = lazy(() => import('./pages/tracker/engineering/DebugPage').the
 const AutoTrackPage = lazy(() => import('./pages/tracker/engineering/AutoTrackPage').then(m => ({ default: m.AutoTrackPage })));
 const VerifyPage = lazy(() => import('./pages/tracker/engineering/VerifyPage').then(m => ({ default: m.VerifyPage })));
 const HealthMonitorPage = lazy(() => import('./pages/tracker/HealthMonitorPage').then(m => ({ default: m.HealthMonitorPage })));
+// 高级行为分析(漏斗/留存/路径)— 后端 /v1/advanced-analysis/* 已实现
+const AdvancedAppPage = lazy(() => import('./pages/tracker/advanced/AdvancedAppPage').then(m => ({ default: m.AdvancedAppPage })));
+const FunnelAnalysisPage = lazy(() => import('./pages/tracker/advanced/FunnelAnalysisPage').then(m => ({ default: m.FunnelAnalysisPage })));
+const RetentionAnalysisPage = lazy(() => import('./pages/tracker/advanced/RetentionAnalysisPage').then(m => ({ default: m.RetentionAnalysisPage })));
+const PathAnalysisPage = lazy(() => import('./pages/tracker/advanced/PathAnalysisPage').then(m => ({ default: m.PathAnalysisPage })));
 // NOTE: data-platform / portrait / behavior / experience / bi / cdp 的页面已实现但
 // 对应后端接口尚未提供,路由暂时下线(连同侧边栏入口)避免运行时 404,待后端实现后恢复。
 
@@ -79,6 +84,11 @@ export const router = createBrowserRouter([
       { path: 'tracker/engineering/debug', element: <LazyPage><DebugPage /></LazyPage> },
       { path: 'tracker/engineering/autotrack', element: <LazyPage><AutoTrackPage /></LazyPage> },
       { path: 'tracker/engineering/verify', element: <LazyPage><VerifyPage /></LazyPage> },
+      // Advanced analysis (funnel / retention / path)
+      { path: 'tracker/advanced', element: <LazyPage><AdvancedAppPage /></LazyPage> },
+      { path: 'tracker/advanced/:appCode/funnel', element: <LazyPage><FunnelAnalysisPage /></LazyPage> },
+      { path: 'tracker/advanced/:appCode/retention', element: <LazyPage><RetentionAnalysisPage /></LazyPage> },
+      { path: 'tracker/advanced/:appCode/path', element: <LazyPage><PathAnalysisPage /></LazyPage> },
       // Monitoring
       { path: 'tracker/monitor', element: <LazyPage><HealthMonitorPage /></LazyPage> },
     ],
