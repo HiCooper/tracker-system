@@ -1,0 +1,28 @@
+id: "D-20260616-016"
+timestamp: "2026-06-16T18:40:00"
+topic: "事件增加 app 维度,统一 appCode=clientId=契约 key;解锁按 app 告警"
+context: >
+  events 表无 app 维度,导致按 app 的告警/分析无法实现,且契约 key(appCode)与采集 appKey(clientId)
+  身份割裂。这是此前多个 known-gap 的共同根因。
+chosen: >
+  ClickHouse events 增 app_code 列(V2 ALTER ADD COLUMN,幂等);采集侧 enriched.setAppCode(clientId)
+  统一 app 身份;ClickHouseWriter 末列绑定;admin MetricQueryService 规则配 appCode 时按 app 过滤。
+rejected:
+  - "新建 app 维度表做 join: 热查询 join 代价高;直接给事件加列最简最快"
+  - "用 platform 当 app 维度: 语义不符(platform 是 web/android),需独立 app_code"
+  - "把 app_code 加在中间列: 位置 INSERT 需大改;追加末列改动最小"
+  - "appCode 取 SDK token 的 appCode: 解析链路更长;clientId 已是事实 app 标识且与契约 key 对齐"
+rationale: >
+  追加末列 + clientId 统一,既以最小改动解锁按 app 维度,又顺带消除契约/采集身份割裂;
+  ALTER ADD COLUMN 是轻量元数据操作。
+constraints_ref:
+  - "docs-site/dev/roadmap.md(身份/按 app 维度遗留项)"
+  - "constraints.yaml: api_backward_compat(新增列 DEFAULT '',旧数据兼容)"
+known_gaps:
+  - "SDK clientId 需设为 app 标识方能精确归属;历史数据 app_code 为空"
+  - "分析服务(EventAnalysisService 等)按 app 过滤可后续接入;端到端需 CH 验证"
+impact:
+  files:
+    - "tracker-service: db/migration/V2, model/EventRecord, pipeline/ClickHouseWriter, api/EventController, ClickHouseWriterIT/Test"
+    - "tracker-admin: service/MetricQueryService + 测试"
+  risk: "medium"
