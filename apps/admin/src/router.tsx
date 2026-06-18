@@ -30,6 +30,10 @@ const RetentionAnalysisPage = lazy(() => import('./pages/tracker/advanced/Retent
 const PathAnalysisPage = lazy(() => import('./pages/tracker/advanced/PathAnalysisPage').then(m => ({ default: m.PathAnalysisPage })));
 // 平台数据 overview — 后端 /v1/data-platform/* 已实现
 const PlatformDataPage = lazy(() => import('./pages/tracker/data-platform/PlatformDataPage').then(m => ({ default: m.PlatformDataPage })));
+// 体验分析 — 后端 /v1/experience/* 已实现
+const ExperienceAnalysisPage = lazy(() => import('./pages/tracker/experience/ExperienceAnalysisPage').then(m => ({ default: m.ExperienceAnalysisPage })));
+const HeatmapPage = lazy(() => import('./pages/tracker/experience/HeatmapPage').then(m => ({ default: m.HeatmapPage })));
+const UserPortraitPage = lazy(() => import('./pages/tracker/experience/UserPortraitPage').then(m => ({ default: m.UserPortraitPage })));
 // NOTE: data-platform / portrait / behavior / experience / bi / cdp 的页面已实现但
 // 对应后端接口尚未提供,路由暂时下线(连同侧边栏入口)避免运行时 404,待后端实现后恢复。
 
@@ -88,6 +92,10 @@ export const router = createBrowserRouter([
       { path: 'tracker/engineering/verify', element: <LazyPage><VerifyPage /></LazyPage> },
       // Platform data overview
       { path: 'tracker/data-platform', element: <LazyPage><PlatformDataPage /></LazyPage> },
+      // Experience analysis
+      { path: 'tracker/experience', element: <LazyPage><ExperienceAnalysisPage /></LazyPage> },
+      { path: 'tracker/experience/:appCode/heatmap', element: <LazyPage><HeatmapPage /></LazyPage> },
+      { path: 'tracker/experience/:appCode/portrait', element: <LazyPage><UserPortraitPage /></LazyPage> },
       // Advanced analysis (funnel / retention / path)
       { path: 'tracker/advanced', element: <LazyPage><AdvancedAppPage /></LazyPage> },
       { path: 'tracker/advanced/:appCode/funnel', element: <LazyPage><FunnelAnalysisPage /></LazyPage> },
