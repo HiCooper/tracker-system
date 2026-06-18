@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Typography, Tabs, Table, Tag, Space, Select, DatePicker, Button, Input } from 'antd';
 import { PlaySquareOutlined, HeatMapOutlined, NodeIndexOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { useExperienceStore } from '../../../stores/experienceStore';
+import { useSetupStore } from '../../../stores/setupStore';
+import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -56,37 +58,27 @@ function SessionReplayTab() {
 // ============ Tab 2: 热力图 ============
 
 function HeatmapTab() {
+  const { apps, fetchApps } = useSetupStore();
+  useEffect(() => { fetchApps(); }, []);
   return (
     <div>
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <span style={{ fontSize: 12, color: '#666' }}>页面:</span>
-          <Select placeholder="选择页面" style={{ width: 260 }} size="small" options={[
-            { label: '首页', value: '/pages/index' },
-            { label: '商品详情', value: '/pages/goods/detail' },
-            { label: '分类列表', value: '/pages/category' },
-            { label: '购物车', value: '/pages/cart' },
-          ]} />
-          <span style={{ fontSize: 12, color: '#666' }}>类型:</span>
-          <Select defaultValue="click" style={{ width: 100 }} size="small" options={[{ label: '点击', value: 'click' }, { label: '曝光', value: 'exposure' }]} />
-          <Button type="primary" size="small">分析</Button>
-        </Space>
-      </Card>
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="总点击数" value="—" /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="热力区域" value="—" /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="最热区域" value="—" valueStyle={{ fontSize: 14 }} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="未点击区" value="—" /></Card></Col>
+      <Text type="secondary">选择应用查看真实的点击热力图与用户画像(基于真实采集数据):</Text>
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        {apps.map((a) => (
+          <Col key={a.id} xs={24} sm={12} md={8}>
+            <Card size="small" hoverable>
+              <Title level={5} style={{ marginBottom: 4 }}>{a.appName}</Title>
+              <code style={{ color: '#999', fontSize: 12 }}>{a.appCode}</code>
+              <div style={{ marginTop: 12 }}>
+                <Link to={`/tracker/experience/${a.appCode}/heatmap`}>点击热力图</Link>
+                <span style={{ color: '#ddd', margin: '0 8px' }}>|</span>
+                <Link to={`/tracker/experience/${a.appCode}/portrait`}>用户画像</Link>
+              </div>
+            </Card>
+          </Col>
+        ))}
+        {apps.length === 0 && <Col span={24}><Text type="secondary">暂无应用,请先在「埋点管理」创建应用。</Text></Col>}
       </Row>
-      <Card size="small" title="点击热力图">
-        <div style={{ height: 400, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.3, background: 'radial-gradient(circle at 20% 30%, #f00 0%, transparent 55%), radial-gradient(circle at 45% 55%, #f80 0%, transparent 40%), radial-gradient(circle at 75% 20%, #f00 0%, transparent 50%), radial-gradient(circle at 30% 75%, #f80 0%, transparent 35%), radial-gradient(circle at 65% 80%, #f80 0%, transparent 30%)' }} />
-          <Text style={{ zIndex: 1 }}>选择页面并点击分析查看热力图</Text>
-        </div>
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#999' }}>
-          低<div style={{ width: 160, height: 10, borderRadius: 5, background: 'linear-gradient(to right, #00f, #0ff, #0f0, #ff0, #f00)' }} />高
-        </div>
-      </Card>
     </div>
   );
 }

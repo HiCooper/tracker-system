@@ -1,0 +1,26 @@
+id: "D-20260616-019"
+timestamp: "2026-06-16T21:20:00"
+topic: "体验分析(热力图/画像/会话/转化)后端 + 前端入口与 mock 显示修正"
+context: >
+  隐藏菜单「体验分析」页面就绪缺后端;主页热力图 Tab 还是纯 mock(写死页面下拉 + 假热力图渐变)。
+chosen: >
+  ExperienceService 实现 6 个端点直查 ClickHouse(热力图用 click_x/y 分桶、画像维度占比+活跃时段、
+  会话来自 sessions 表、转化 goal 漏斗、报告暂空);前端恢复 /tracker/experience 路由+菜单+per-app
+  热力图/画像路由;把主页 mock 热力图 Tab 改为真实「选应用→热力图/画像」入口。
+rejected:
+  - "保留主页 mock 热力图 Tab: 误导,且与真实 per-app HeatmapPage 重复;改为入口卡片"
+  - "报告做生成引擎: 超范围;先返回空列表避免 404,后续单独实现"
+  - "画像入口/退出做精确 join: schema 不足;近似省略"
+rationale: >
+  以标准 CH 聚合补齐体验分析,复用身份缝合/click 坐标/sessions 表;同时消除主页假热力图,
+  让用户经真实 per-app 页面看到真实数据。
+constraints_ref:
+  - "docs-site/dev/roadmap.md(隐藏菜单优先级)"
+  - "constraints.yaml: api_backward_compat"
+known_gaps:
+  - "报告生成未实现(空列表);CH 端到端需验证"
+impact:
+  files:
+    - "tracker-admin: controller/ExperienceController, service/ExperienceService, domain/dto/experience/ExperienceDto"
+    - "apps/admin: router.tsx, layouts/AdminLayout.tsx, pages/tracker/experience/ExperienceAnalysisPage(mock 热力图 Tab 改真实入口)"
+  risk: "medium"
