@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Breadcrumb, Table, Button, Input, Select, Slider, Statistic, Space, Divider, Tag, Spin, Tabs, Progress } from 'antd';
 import { HomeOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { Link, useParams } from 'react-router-dom';
+import { AdvancedNav } from './AdvancedNav';
 import type { ColumnsType } from 'antd/es/table';
 import { useAdvancedAnalysisStore } from '../../../stores/advancedAnalysisStore';
 import { useSetupStore } from '../../../stores/setupStore';
@@ -77,6 +78,8 @@ export function PathAnalysisPage() {
         { title: appName || appCode || '' },
         { title: '路径分析' },
       ]} />
+
+      <AdvancedNav appCode={appCode} active="path" />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>用户路径分析</Title>

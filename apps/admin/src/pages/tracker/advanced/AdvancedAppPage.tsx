@@ -41,9 +41,6 @@ export function AdvancedAppPage() {
                 <div style={{ marginTop: 12, fontSize: 12, color: '#999' }}>
                   支持漏斗分析 · 留存分析 · 路径分析
                 </div>
-                <div style={{ marginTop: 4, fontSize: 12, color: '#999' }}>
-                  体验分析: <Link to={`/tracker/experience/${a.appCode}/heatmap`} style={{ color: '#1677ff' }}>热力图</Link> · <Link to={`/tracker/experience/${a.appCode}/portrait`} style={{ color: '#1677ff' }}>用户画像</Link>
-                </div>
               </Card>
             </Col>
           ))}

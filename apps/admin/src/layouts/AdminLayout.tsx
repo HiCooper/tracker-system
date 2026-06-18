@@ -15,6 +15,7 @@ import {
   ThunderboltOutlined,
   SafetyCertificateOutlined,
   FireOutlined,
+  FunnelPlotOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -43,6 +44,7 @@ const menuItems: MenuItem[] = [
     icon: <BarChartOutlined />,
     children: [
       { key: '/tracker/analysis', label: '流量分析', icon: <FireOutlined /> },
+      { key: '/tracker/advanced', label: '高级分析', icon: <FunnelPlotOutlined /> },
       // NOTE: 平台数据/画像洞察/行为分析/体验分析/看板搭建/标签人群 暂未实现对应后端接口,
       // 先隐藏入口避免 404,待后端 controller 实现后再逐个放开。
     ],
@@ -71,6 +73,7 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/engineering/plans')) return '/tracker/engineering/plans';
     if (location.pathname.startsWith('/tracker/setup')) return '/tracker/setup';
     if (location.pathname.startsWith('/tracker/monitor')) return '/tracker/monitor';
+    if (location.pathname.startsWith('/tracker/advanced')) return '/tracker/advanced';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
     return '/tracker/setup';
   })();
@@ -80,7 +83,8 @@ export function AdminLayout() {
         location.pathname.startsWith('/tracker/setup')) {
       setOpenKeys((prev) => prev.includes('engineering') ? prev : [...prev, 'engineering']);
     }
-    if (location.pathname.startsWith('/tracker/analysis')) {
+    if (location.pathname.startsWith('/tracker/analysis') ||
+        location.pathname.startsWith('/tracker/advanced')) {
       setOpenKeys((prev) => prev.includes('analytics') ? prev : [...prev, 'analytics']);
     }
   }, [location.pathname]);

@@ -1,0 +1,28 @@
+id: "D-20260616-017"
+timestamp: "2026-06-16T19:30:00"
+topic: "高级行为分析(漏斗/留存/路径)落地 + 前端入口恢复与子导航优化"
+context: >
+  管理后台「数据分析」下有 6 个隐藏菜单(页面+store+api 已就绪,缺后端)。评审结论:漏斗/留存/路径
+  价值最高、ClickHouse 原生支持、且能兑现刚建的身份缝合 + app 维度,优先实现。
+chosen: >
+  后端新增 AdvancedAnalysisController/Service(ClickHouse windowFunnel/留存矩阵/路径转移),
+  DTO 与前端类型对齐;前端恢复 /tracker/advanced 路由与「高级分析」菜单,新增 AdvancedNav 子导航
+  (漏斗/留存/路径互切),并移除 hub 中指向未实现页面的死链(体验分析热力图/画像)。
+rejected:
+  - "先做 cdp/portrait: 需新建标签/人群引擎,成本最高、依赖最重,排最后"
+  - "用 ClickHouse retention() 函数: 需基于 cohort 偏移条件,较难表达正确;改用 cohort+uniqExactIf 显式矩阵"
+  - "趋势用逐日完整漏斗: N 天 × windowFunnel 代价高;v1 用按天事件量近似趋势(已标注)"
+rationale: >
+  漏斗/留存/路径是产品分析三大核心,ClickHouse 原生高效;前端零返工只缺后端;
+  正好把身份缝合(用户口径)+ app 维度(隔离/过滤)变现。
+constraints_ref:
+  - "docs-site/dev/roadmap.md(隐藏菜单优先级评审)"
+  - "constraints.yaml: api_backward_compat(新增端点)"
+known_gaps:
+  - "漏斗 medianDurationSec=0、趋势为事件量近似;CH 聚合 SQL 端到端需 CH 验证"
+  - "体验分析/cdp/portrait/bi 仍隐藏,后续按优先级实现"
+impact:
+  files:
+    - "tracker-admin: controller/AdvancedAnalysisController, service/AdvancedAnalysisService, domain/dto/advanced/*"
+    - "apps/admin: router.tsx, layouts/AdminLayout.tsx, pages/tracker/advanced/{AdvancedNav,AdvancedAppPage,Funnel/Retention/Path}"
+  risk: "medium"
