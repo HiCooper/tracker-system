@@ -203,8 +203,8 @@ function PageAnalysisTab() {
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}><Card size="small"><Statistic title="日访问页面数" value={totalPv > 0 ? totalPv : '—'} /></Card></Col>
         <Col span={6}><Card size="small"><Statistic title="人均访问深度" value={analysis?.avgPagesPerSession ?? '—'} suffix={analysis ? '页' : undefined} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="跳出率(用户)" value={analysis ? analysis.day7Retention + '%' : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="跳出率(次数)" value="—" /></Card></Col>
+        <Col span={6}><Card size="small"><Statistic title="7 日留存" value={analysis ? analysis.day7Retention + '%' : '—'} /></Card></Col>
+        <Col span={6}><Card size="small"><Statistic title="人均会话数" value={analysis?.avgSessionsPerUser ?? '—'} /></Card></Col>
       </Row>
       <Card size="small" title="页面访问明细">
         <Table rowKey="path" columns={cols} dataSource={pages} loading={loading} size="small" pagination={false} />
