@@ -1,0 +1,26 @@
+id: "D-20260616-021"
+timestamp: "2026-06-16T23:10:00"
+topic: "BI 看板取数引擎 + 前端真实数据接入(保存/加载/渲染)"
+context: >
+  看板搭建页是纯前端 mockup(WidgetCard 显示 — / 占位,保存按钮无逻辑),DashboardController 仅有 CRUD,
+  缺 widget 取数;前端 dashboardApi 的 configJson 字段与后端 config 不一致。
+chosen: >
+  后端新增 GET /dashboards/{id}/data:解析 config 的 widget 列表逐个从 ClickHouse 计算真实数据
+  (stat/line/bar/pie/table),复用 PlatformDataService。前端修正 configJson→config 字段一致性,
+  WidgetCard 渲染真实结果,接入保存(create/update)、打开已存看板、刷新数据。
+rejected:
+  - "保留 mock 看板: 无实际价值;接入真实取数"
+  - "前端继续用 configJson: 与后端 config 不一致会导致保存/读取错位;统一为 config"
+  - "复杂图表库: 复用页面已有的 Mini 图表组件,零新依赖"
+rationale: >
+  以最小后端引擎把已有看板配置变为真实数据,并修正前后端字段不一致,让 BI 真正可用(可存可读可取数)。
+constraints_ref:
+  - "docs-site/dev/roadmap.md(隐藏菜单优先级)"
+  - "constraints.yaml: api_backward_compat"
+known_gaps:
+  - "line/bar/pie 维度固定(按天/渠道);更多维度后续可配置。CH 端到端需验证"
+impact:
+  files:
+    - "tracker-admin: service/DashboardDataService, controller/DashboardController, domain/dto/dashboard/DashboardDataDto"
+    - "apps/admin: services/dashboardApi(config 字段), stores/dashboardStore, pages/tracker/bi/DashboardBuilderPage(真实取数), pages/tracker/dashboard/DashboardListPage"
+  risk: "medium"

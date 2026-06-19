@@ -20,12 +20,12 @@ export function DashboardListPage() {
 
   const handleCreate = async () => {
     const vals = await form.validateFields();
-    const configJson = JSON.stringify({
+    const config = JSON.stringify({
       panels: [
         { id: 'panel_1', type: 'metric', title: '事件总数', query: { aggregation: 'count', label: '事件总数' } },
       ],
     });
-    await create({ ...vals, configJson });
+    await create({ ...vals, config });
     message.success('创建成功');
     setModalOpen(false);
     form.resetFields();

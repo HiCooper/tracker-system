@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Card, Row, Col, Statistic, Typography, Button, Space, Modal, Select,
-  Input, Tag, Empty, Segmented, Drawer, Tooltip, Popconfirm,
+  Input, Tag, Empty, Segmented, Drawer, Tooltip, Popconfirm, message,
 } from 'antd';
 import {
   PlusOutlined, BarChartOutlined, LineChartOutlined, PieChartOutlined,
@@ -10,6 +10,7 @@ import {
   SettingOutlined, CopyOutlined, FullscreenOutlined,
   RiseOutlined, FallOutlined, ReloadOutlined,
 } from '@ant-design/icons';
+import { dashboardApi, type DashboardVO } from '../../../services/dashboardApi';
 
 const { Title, Text } = Typography;
 
@@ -127,18 +128,29 @@ function MiniTable({ data }: { data: any[] }) {
 
 // ============ Widget component ============
 
-function WidgetCard({ config, onDelete }: { config: WidgetConfig; onDelete: () => void }) {
+function WidgetCard({ config, onDelete, result }: { config: WidgetConfig; onDelete: () => void; result?: any }) {
   const gridCol = config.type === 'table' ? 3 : config.type === 'line' || config.type === 'bar' ? 2 : 1;
 
   const renderContent = () => {
+    // 未加载数据(未打开已存看板)时给出引导
+    if (result === undefined) {
+      return config.type === 'stat'
+        ? <Statistic title={config.title} value="—" />
+        : <Empty description="保存并打开看板查看真实数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    }
     switch (config.type) {
       case 'stat':
-        return <Statistic title={config.title} value="—" />;
-      case 'line':
+        return <Statistic title={config.title} value={result?.value ?? 0} />;
+      case 'line': {
+        const data = Array.isArray(result) ? result.map((d: any) => ({ date: d.date, value: d.value, value2: 0 })) : [];
+        return data.length ? <MiniLineChart data={data} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+      }
       case 'bar':
+        return Array.isArray(result) && result.length ? <MiniBarChart data={result} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />;
       case 'pie':
+        return Array.isArray(result) && result.length ? <MiniPieChart data={result} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />;
       case 'table':
-        return <Empty description="绑定数据源查看图表" />;
+        return <MiniTable data={Array.isArray(result) ? result : []} />;
       default: return <Empty />;
     }
   };
@@ -186,6 +198,53 @@ export function DashboardBuilderPage() {
   const [wTitle, setWTitle] = useState('');
   const [wMetric, setWMetric] = useState<string>('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // 真实数据接入
+  const [dashboardId, setDashboardId] = useState<number | null>(null);
+  const [panelData, setPanelData] = useState<Record<string, any>>({});
+  const [savedList, setSavedList] = useState<DashboardVO[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const loadSavedList = () => { dashboardApi.list().then(setSavedList).catch(() => {}); };
+  useEffect(() => { loadSavedList(); }, []);
+
+  const refreshData = async (id: number) => {
+    try {
+      const res = await dashboardApi.getData(id);
+      const m: Record<string, any> = {};
+      res.panels.forEach((p) => { m[p.panelId] = p.error ? undefined : p.result; });
+      setPanelData(m);
+    } catch { message.error('取数失败'); }
+  };
+
+  const openSaved = async (id?: number) => {
+    if (!id) { setDashboardId(null); setPanelData({}); return; }
+    try {
+      const d = await dashboardApi.get(id);
+      const cfg = JSON.parse(d.config || '{}');
+      setWidgets(Array.isArray(cfg.widgets) ? cfg.widgets : []);
+      setDashName(d.name);
+      setDashboardId(id);
+      await refreshData(id);
+    } catch { message.error('打开看板失败'); }
+  };
+
+  const saveDashboard = async () => {
+    setBusy(true);
+    try {
+      const config = JSON.stringify({ widgets });
+      if (dashboardId) {
+        await dashboardApi.update(dashboardId, { name: dashName, config });
+        message.success('已保存');
+        await refreshData(dashboardId);
+      } else {
+        const d = await dashboardApi.create({ name: dashName, config });
+        setDashboardId(d.id);
+        message.success('已创建并保存');
+        await refreshData(d.id);
+      }
+      loadSavedList();
+    } catch { message.error('保存失败'); } finally { setBusy(false); }
+  };
 
   const addWidget = () => {
     setWidgets(prev => [...prev, {
@@ -210,13 +269,17 @@ export function DashboardBuilderPage() {
           <Tag color="blue">草稿</Tag>
         </Space>
         <Space>
-          <Select value={presetKey} style={{ width: 160 }} size="small"
+          <Select placeholder="打开已存看板" style={{ width: 160 }} size="small" allowClear
+            value={dashboardId ?? undefined}
+            onChange={(v) => openSaved(v as number | undefined)}
+            options={savedList.map(d => ({ label: d.name, value: d.id }))} />
+          <Select value={presetKey} style={{ width: 150 }} size="small"
             onChange={loadPreset}
-            options={PRESET_DASHBOARDS.map(d => ({ label: d.name, value: d.id }))} />
-          <Button icon={<ReloadOutlined />} size="small">刷新</Button>
-          <Button icon={<DownloadOutlined />} size="small">导出</Button>
+            options={PRESET_DASHBOARDS.map(d => ({ label: '模板: ' + d.name, value: d.id }))} />
+          <Button icon={<ReloadOutlined />} size="small" disabled={!dashboardId}
+            onClick={() => dashboardId && refreshData(dashboardId)}>刷新数据</Button>
           <Button icon={<SettingOutlined />} size="small" onClick={() => setDrawerOpen(true)}>设置</Button>
-          <Button type="primary" icon={<SaveOutlined />} size="small">保存看板</Button>
+          <Button type="primary" icon={<SaveOutlined />} size="small" loading={busy} onClick={saveDashboard}>保存看板</Button>
         </Space>
       </div>
 
@@ -240,7 +303,7 @@ export function DashboardBuilderPage() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            {widgets.map(w => <WidgetCard key={w.id} config={w} onDelete={() => setWidgets(prev => prev.filter(x => x.id !== w.id))} />)}
+            {widgets.map(w => <WidgetCard key={w.id} config={w} result={panelData[w.id]} onDelete={() => setWidgets(prev => prev.filter(x => x.id !== w.id))} />)}
           </div>
           <div style={{ textAlign: 'center', marginTop: 16, padding: 16, border: '1px dashed #d9d9d9', borderRadius: 8 }}>
             <Button type="dashed" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>添加组件</Button>
