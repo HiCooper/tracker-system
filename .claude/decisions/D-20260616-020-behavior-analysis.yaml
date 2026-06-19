@@ -1,0 +1,21 @@
+id: "D-20260616-020"
+timestamp: "2026-06-16T22:10:00"
+topic: "行为分析(概览/事件/漏斗/路径/留存)后端,复用高级分析"
+context: >
+  隐藏菜单「行为分析」与已实现的高级分析(漏斗/路径/留存)高度重叠;页面+store+api 就绪缺后端。
+chosen: >
+  BehaviorService 漏斗/路径/留存复用 AdvancedAnalysisService 并映射为 behavior DTO(避免重复 CH 逻辑),
+  概览/事件直查 CH(事件 trend=与上一等长周期对比);前端恢复 /tracker/behavior 路由+菜单。
+rejected:
+  - "重写一套行为 CH 查询: 与高级分析重复,维护成本高;直接复用"
+  - "trend 置 0: 趋势是事件分析关键信号;以上一等长周期对比计算"
+rationale: >
+  最大化复用,避免重复 ClickHouse 聚合逻辑;以一致的用户口径与率口径对齐前端。
+constraints_ref:
+  - "docs-site/dev/roadmap.md(隐藏菜单优先级)"
+  - "constraints.yaml: api_backward_compat"
+impact:
+  files:
+    - "tracker-admin: controller/BehaviorController, service/BehaviorService, domain/dto/behavior/BehaviorDto"
+    - "apps/admin: router.tsx, layouts/AdminLayout.tsx(菜单/路由)"
+  risk: "low"
