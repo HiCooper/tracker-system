@@ -3,8 +3,9 @@ import api from './api';
 export interface DashboardVO {
   id: number;
   name: string;
-  description?: string;
-  configJson: string;
+  config: string;
+  createdBy?: string;
+  status?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -31,10 +32,10 @@ export const dashboardApi = {
   getData: (id: number, params?: { startTime?: string; endTime?: string }) =>
     api.get<DashboardDataResult>(`/v1/dashboards/${id}/data`, { params }).then((r) => r.data),
 
-  create: (data: { name: string; description?: string; configJson: string }) =>
+  create: (data: { name: string; config: string }) =>
     api.post<DashboardVO>('/v1/dashboards', data).then((r) => r.data),
 
-  update: (id: number, data: { name?: string; description?: string; configJson?: string }) =>
+  update: (id: number, data: { name?: string; config?: string }) =>
     api.put<DashboardVO>(`/v1/dashboards/${id}`, data).then((r) => r.data),
 
   delete: (id: number) => api.delete(`/v1/dashboards/${id}`).then((r) => r.data),

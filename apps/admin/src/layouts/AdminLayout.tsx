@@ -17,6 +17,7 @@ import {
   FireOutlined,
   FunnelPlotOutlined,
   HeatMapOutlined,
+  DashboardOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useAuthStore } from '../stores/authStore';
@@ -49,8 +50,8 @@ const menuItems: MenuItem[] = [
       { key: '/tracker/advanced', label: '高级分析', icon: <FunnelPlotOutlined /> },
       { key: '/tracker/behavior', label: '行为分析', icon: <NodeIndexOutlined /> },
       { key: '/tracker/experience', label: '体验分析', icon: <HeatMapOutlined /> },
-      // NOTE: 平台数据/画像洞察/行为分析/体验分析/看板搭建/标签人群 暂未实现对应后端接口,
-      // 先隐藏入口避免 404,待后端 controller 实现后再逐个放开。
+      { key: '/tracker/bi', label: '看板搭建', icon: <DashboardOutlined /> },
+      // NOTE: 画像洞察(portrait)/标签人群(cdp) 需先建标签/人群引擎,后端未实现,暂隐藏入口避免 404。
     ],
   },
   { key: '/tracker/monitor', label: '系统监控', icon: <MonitorOutlined /> },
@@ -81,6 +82,7 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/data-platform')) return '/tracker/data-platform';
     if (location.pathname.startsWith('/tracker/experience')) return '/tracker/experience';
     if (location.pathname.startsWith('/tracker/behavior')) return '/tracker/behavior';
+    if (location.pathname.startsWith('/tracker/bi')) return '/tracker/bi';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
     return '/tracker/setup';
   })();
@@ -94,7 +96,8 @@ export function AdminLayout() {
         location.pathname.startsWith('/tracker/advanced') ||
         location.pathname.startsWith('/tracker/data-platform') ||
         location.pathname.startsWith('/tracker/experience') ||
-        location.pathname.startsWith('/tracker/behavior')) {
+        location.pathname.startsWith('/tracker/behavior') ||
+        location.pathname.startsWith('/tracker/bi')) {
       setOpenKeys((prev) => prev.includes('analytics') ? prev : [...prev, 'analytics']);
     }
   }, [location.pathname]);

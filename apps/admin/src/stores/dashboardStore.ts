@@ -10,8 +10,8 @@ interface DashboardState {
   fetchList: () => Promise<void>;
   fetchOne: (id: number) => Promise<void>;
   fetchData: (id: number, startTime?: string, endTime?: string) => Promise<void>;
-  create: (data: { name: string; description?: string; configJson: string }) => Promise<void>;
-  update: (id: number, data: { name?: string; description?: string; configJson?: string }) => Promise<void>;
+  create: (data: { name: string; config: string }) => Promise<void>;
+  update: (id: number, data: { name?: string; config?: string }) => Promise<void>;
   remove: (id: number) => Promise<void>;
 }
 
