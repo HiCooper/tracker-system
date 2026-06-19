@@ -47,6 +47,7 @@ const menuItems: MenuItem[] = [
       { key: '/tracker/data-platform', label: '平台数据', icon: <BarChartOutlined /> },
       { key: '/tracker/analysis', label: '流量分析', icon: <FireOutlined /> },
       { key: '/tracker/advanced', label: '高级分析', icon: <FunnelPlotOutlined /> },
+      { key: '/tracker/behavior', label: '行为分析', icon: <NodeIndexOutlined /> },
       { key: '/tracker/experience', label: '体验分析', icon: <HeatMapOutlined /> },
       // NOTE: 平台数据/画像洞察/行为分析/体验分析/看板搭建/标签人群 暂未实现对应后端接口,
       // 先隐藏入口避免 404,待后端 controller 实现后再逐个放开。
@@ -79,6 +80,7 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/advanced')) return '/tracker/advanced';
     if (location.pathname.startsWith('/tracker/data-platform')) return '/tracker/data-platform';
     if (location.pathname.startsWith('/tracker/experience')) return '/tracker/experience';
+    if (location.pathname.startsWith('/tracker/behavior')) return '/tracker/behavior';
     if (location.pathname.startsWith('/tracker/analysis')) return '/tracker/analysis';
     return '/tracker/setup';
   })();
@@ -91,7 +93,8 @@ export function AdminLayout() {
     if (location.pathname.startsWith('/tracker/analysis') ||
         location.pathname.startsWith('/tracker/advanced') ||
         location.pathname.startsWith('/tracker/data-platform') ||
-        location.pathname.startsWith('/tracker/experience')) {
+        location.pathname.startsWith('/tracker/experience') ||
+        location.pathname.startsWith('/tracker/behavior')) {
       setOpenKeys((prev) => prev.includes('analytics') ? prev : [...prev, 'analytics']);
     }
   }, [location.pathname]);
