@@ -40,6 +40,7 @@ export default withMermaid(defineConfig({
           text: '平台演进',
           items: [
             { text: '演进路线图', link: '/dev/roadmap' },
+            { text: 'CDP 子系统设计与集成', link: '/dev/cdp-integration' },
           ],
         },
         {
