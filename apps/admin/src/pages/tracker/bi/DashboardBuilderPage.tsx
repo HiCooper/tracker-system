@@ -203,6 +203,7 @@ export function DashboardBuilderPage() {
   const [panelData, setPanelData] = useState<Record<string, any>>({});
   const [savedList, setSavedList] = useState<DashboardVO[]>([]);
   const [busy, setBusy] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<number | null>(null);
 
   const loadSavedList = () => { dashboardApi.list().then(setSavedList).catch(() => {}); };
   useEffect(() => { loadSavedList(); }, []);
@@ -213,6 +214,7 @@ export function DashboardBuilderPage() {
       const m: Record<string, any> = {};
       res.panels.forEach((p) => { m[p.panelId] = p.error ? undefined : p.result; });
       setPanelData(m);
+      setLastRefreshed(Date.now());
     } catch { message.error('取数失败'); }
   };
 
@@ -286,8 +288,8 @@ export function DashboardBuilderPage() {
       <Card size="small" style={{ marginBottom: 16, background: '#fafafa' }}>
         <Row gutter={16}>
           <Col span={6}><Statistic title="覆盖指标" value={widgets.length} prefix={<NumberOutlined />} valueStyle={{ fontSize: 18 }} /></Col>
-          <Col span={6}><Statistic title="最后更新" value="2 分钟前" valueStyle={{ fontSize: 18 }} /></Col>
-          <Col span={6}><Statistic title="数据延迟" value="< 5 分钟" valueStyle={{ fontSize: 18, color: '#52c41a' }} /></Col>
+          <Col span={6}><Statistic title="最后更新" value={lastRefreshed ? new Date(lastRefreshed).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '尚未取数'} valueStyle={{ fontSize: 18 }} /></Col>
+          <Col span={6}><Statistic title="取数状态" value={dashboardId ? (lastRefreshed ? '已加载' : '待刷新') : '未保存'} valueStyle={{ fontSize: 18, color: lastRefreshed ? '#52c41a' : '#999' }} /></Col>
           <Col span={6} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <Segmented size="small" options={[{ label: '今日', value: 'today' }, { label: '7天', value: '7d' }, { label: '30天', value: '30d' }]} />
           </Col>
