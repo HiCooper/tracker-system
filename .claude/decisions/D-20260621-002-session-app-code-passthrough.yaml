@@ -1,0 +1,27 @@
+id: "D-20260621-002"
+timestamp: "2026-06-21T11:00:00"
+topic: "会话写入链路贯通 app 维度(sessions.app_code = 采集 clientId),解锁按 app 的会话/留存下钻"
+context: >
+  V2 仅给 events 增加了 app_code,sessions 表与会话写入链路(Session 模型 / Redis 活跃态 /
+  ClickHouse 落库)均无此维度,导致按 app 的会话、留存分析无法下钻,app 维度只有「半条链路」。
+chosen: >
+  打通会话写入链路:sessions 表 ALTER ADD COLUMN app_code(幂等,对齐 events V2);
+  Session 模型加 appCode;getOrCreateSession 增入参,由 EventController 传入 clientId
+  (与事件 app_code 同源);SessionStore(Redis)与 SessionRepository(CH)分别持久化该列。
+  仅改基表,不重建 MV——admin 分析直查 sessions 基表,加列即解锁下钻。
+rejected:
+  - "同时重建 sessions_daily / events_hourly MV 以带 app_code: 需 DROP+CREATE,风险与回填成本高,且 admin 不查 MV,收益为零"
+  - "仅加 DDL 列不改写入链路: 列恒为空,等于死数据,无法真正下钻"
+  - "appCode 作为 getOrCreateSession 末位参数: 与身份语义(userId/anonymousId/appCode)不相邻,可读性差;改为紧随 anonymousId"
+rationale: >
+  以最小、向后兼容的增量(默认空列 + 可选入参)让 app 维度在会话侧真正落地,口径与事件统一,
+  避免 MV 重建的高风险与无收益开销。
+constraints_ref:
+  - "api_backward_compat: 新增可选入参 + 默认空列,既有调用/响应不受影响"
+  - "identity 口径一致: sessions.app_code 与 events.app_code 同源(采集 clientId)"
+impact:
+  files:
+    - "tracker-service: db/migration/V3, model/Session, service/SessionService, api/EventController, repository/SessionStore, repository/SessionRepository"
+    - "tracker-service test: SessionServiceTest, EventControllerTest, RedisIntegrationIT"
+  risk: "low"
+  verification: "mvn -B test 97/97 通过;app_code 真实落库需 ClickHouse 端到端验证"
