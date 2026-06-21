@@ -40,77 +40,55 @@ export const healthApi = {
     api.post<DataQualityReport>('/v1/monitor/quality/run', { events }).then((r) => r.data),
 };
 
-// Extended types for HealthMonitorPage
-export interface PerfMetricSummary {
-  metric: string;
-  p50: number;
-  p75: number;
-  p95: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
+// ── 监控仪表盘类型(与后端 MonitorController /dashboard 的真实契约对齐)──
+// 后端对无采集来源的板块显式返回 {available:false, reason},前端据此降级展示而非编造数值。
+
+/** 无采集来源的板块标记(Web Vitals 性能、API 调用统计)。 */
+export interface UnavailableSection {
+  available: false;
+  reason: string;
 }
 
-export interface ErrorAggregation {
-  fingerprint: string;
-  message: string;
-  source: string;
-  count: number;
-  affectedUsers: number;
-  firstSeen: string;
-  lastSeen: string;
-  trend: 'up' | 'down' | 'stable';
-}
-
-export interface ApiCallSummary {
-  url: string;
-  method: string;
-  count: number;
-  errorRate: number;
-  p50Duration: number;
-  p95Duration: number;
-}
-
+/** 采集管道状态。无来源的字段(kafkaLag、未上报的 dlq/dedup)为 null。 */
 export interface PipelineHealth {
-  eventsPerMinute: number;
-  kafkaLag: number;
-  dlqSize: number;
-  dedupRate: number;
-  clickhouseRows: number;
+  clickhouseRows: number | null;
+  eventsPerMinute: number | null;
+  available: boolean;
+  dlqSize: number | null;
+  dedupRate: number | null;
+  collectorMetricsAvailable: boolean;
+  kafkaLag: number | null;
+}
+
+/** 数据质量(直查 ClickHouse)。CH 不可达时 available=false 且各值为 null。 */
+export interface DataQualityHealth {
+  totalEventsToday: number | null;
+  eventTypes: number | null;
+  avgFieldNullRate: number | null;
+  available: boolean;
+}
+
+/** 最近的 error 事件(真实明细)。 */
+export interface RecentErrorEvent {
+  eventId: string;
+  pageUrl: string;
+  properties: string;
+  timestamp: string;
 }
 
 export interface HealthDashboard {
-  perf: {
-    lcp: PerfMetricSummary;
-    fid: PerfMetricSummary;
-    cls: PerfMetricSummary;
-    pageLoad: PerfMetricSummary;
-    trend: { timestamp: string; lcp: number }[];
-  };
-  errors: {
-    total24h: number;
-    errorRate: number;
-    topErrors: ErrorAggregation[];
-  };
-  apiCalls: {
-    totalCalls24h: number;
-    overallErrorRate: number;
-    topSlowEndpoints: ApiCallSummary[];
-    topErrorEndpoints: ApiCallSummary[];
-  };
+  perf: UnavailableSection;
+  apiCalls: UnavailableSection;
+  errors: { recent: RecentErrorEvent[] };
   pipeline: PipelineHealth;
-  dataQuality: {
-    avgFieldNullRate: number;
-    totalEventsToday: number;
-    eventTypes: number;
-  };
+  dataQuality: DataQualityHealth;
 }
 
 export const healthApiExtended = {
   getDashboard: (timeRangeHours: number) =>
     api.get<HealthDashboard>('/v1/monitor/dashboard', { params: { timeRange: timeRangeHours } }).then(r => r.data),
-  getErrors: () =>
-    api.get<ErrorAggregation[]>('/v1/monitor/errors').then(r => r.data),
-  getApiCalls: (type: 'slow' | 'error') =>
-    api.get<ApiCallSummary[]>('/v1/monitor/api-calls', { params: { type } }).then(r => r.data),
+  getErrors: (limit = 50) =>
+    api.get<RecentErrorEvent[]>('/v1/monitor/errors', { params: { limit } }).then(r => r.data),
   getPipeline: () =>
     api.get<PipelineHealth>('/v1/monitor/pipeline').then(r => r.data),
 };

@@ -1,0 +1,27 @@
+id: "D-20260621-001"
+timestamp: "2026-06-21T10:00:00"
+topic: "健康监控页对齐后端真实契约,移除不存在的 MSW mock 形状(修复生产崩溃)"
+context: >
+  HealthMonitorPage 整页按一套 MSW mock 形状编码(perf.lcp.rating、errors.total24h、
+  apiCalls.totalCalls24h、pipeline.kafkaLag 为数值),但仓库内根本没有 MSW(无 src/mocks、
+  无 setupWorker),注释「MSW provides mock fallback in dev」是失效说明。生产实际命中后端
+  /v1/monitor/dashboard 的诚实契约(perf/apiCalls 为 {available:false}、errors 为
+  {recent:[...]}、kafkaLag 为 null),前端访问 dashboard.perf.lcp.rating 等会读到 undefined
+  并在渲染时崩溃。
+chosen: >
+  按后端真实契约重写 healthApi 类型与 HealthMonitorPage:管道/数据质量/近期 error 事件渲染
+  真实值;无采集来源的板块(Web Vitals 性能、API 调用统计)与 kafkaLag 显式降级为
+  「暂无采集来源/未采集」提示,不再编造数值。
+rejected:
+  - "在前端引入 MSW 以匹配旧 mock 形状: 等于把假数据带进生产,与监控页的诚实原则相悖"
+  - "后端补造 perf/apiCalls 假数据满足前端类型: 违反 anti_goals(不编造指标)"
+rationale: >
+  监控页必须呈现真实系统状态;前后端契约统一到后端已落地的诚实结构,既修复崩溃又避免假数据。
+constraints_ref:
+  - "constraints.yaml: 监控/指标不得编造(诚实降级)"
+  - "api_backward_compat: 仅前端适配后端既有响应结构,后端契约不变"
+impact:
+  files:
+    - "apps/admin: services/healthApi.ts, pages/tracker/HealthMonitorPage.tsx"
+  risk: "low"
+  verification: "tsc -b 通过、eslint 通过;真实数值正确性需联调 ClickHouse"
