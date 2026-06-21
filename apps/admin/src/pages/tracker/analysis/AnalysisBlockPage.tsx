@@ -28,10 +28,10 @@ export function AnalysisBlockPage() {
     {
       title: '区块', dataIndex: 'blockName', key: 'bname',
       render: (name: string, r) => {
-        const parts = r.blockCode.split('.');
-        const pc = parts.slice(1, 2)[0];
-        const bc = parts.slice(2).join('.');
-        return <Link to={`/tracker/analysis/${appCode}/${pc}/${bc}`}>{name}({r.blockCode})</Link>;
+        // blockCode is fully qualified: appCode.fullPageCode.blockSuffix
+        // URL: /analysis/appCode/fullPageCode/blockSuffix (3 segments for router match)
+        const blockSuffix = r.blockCode.substring((pageCode + '.').length);
+        return <Link to={`/tracker/analysis/${appCode}/${pageCode}/${blockSuffix}`}>{name}({r.blockCode})</Link>;
       },
     },
     { title: '曝光PV', dataIndex: 'exposurePv', key: 'epv', width: 100, render: (v: number) => fmt(v) },
@@ -67,7 +67,7 @@ export function AnalysisBlockPage() {
       )}
 
       <Card style={{ marginBottom: 16 }}>
-        <TrendChart data={blockTrend.map((d) => ({ time: d.time.slice(5), exposurePv: d.exposurePv, exposureUv: d.exposureUv }))} loading={loading} height={300} />
+        <TrendChart data={blockTrend.map((d) => ({ time: d.time, exposurePv: d.exposurePv, exposureUv: d.exposureUv }))} loading={loading} height={300} />
       </Card>
 
       <Table bordered columns={columns} dataSource={blockMetrics} rowKey="blockCode" loading={loading} pagination={false} />

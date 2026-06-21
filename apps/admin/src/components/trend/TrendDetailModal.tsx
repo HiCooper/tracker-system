@@ -26,7 +26,8 @@ export function TrendDetailModal({ open, title, subtitle, code, onClose }: Props
     if (open) fetchTrendDetail(code, days + 30);
   }, [open, code, days]);
 
-  const dates = dayDetail.slice(0, days).map((d) => d.date);
+  const offset = Math.max(0, dayDetail.length - days);
+  const dates = dayDetail.slice(offset).map((d) => d.date);
 
   const columns: ColumnsType<Record<string, unknown>> = [
     {
@@ -42,13 +43,14 @@ export function TrendDetailModal({ open, title, subtitle, code, onClose }: Props
     const cells: Record<string, React.ReactNode> = {};
 
     for (let i = 0; i < days; i++) {
-      const cur = dayDetail[i]?.[key as keyof DayData] as number | undefined;
-      if (cur === undefined) { cells[dayDetail[i]?.date || i] = '-'; continue; }
-      const yest = showDay && i + 1 < dayDetail.length ? (dayDetail[i + 1]?.[key as keyof DayData] as number) : null;
-      const week = showWeek && i + 7 < dayDetail.length ? (dayDetail[i + 7]?.[key as keyof DayData] as number) : null;
+      const idx = offset + i;
+      const cur = dayDetail[idx]?.[key as keyof DayData] as number | undefined;
+      if (cur === undefined) { cells[dayDetail[idx]?.date || i] = '-'; continue; }
+      const yest = showDay && idx + 1 < dayDetail.length ? (dayDetail[idx + 1]?.[key as keyof DayData] as number) : null;
+      const week = showWeek && idx + 7 < dayDetail.length ? (dayDetail[idx + 7]?.[key as keyof DayData] as number) : null;
       const dDay = delta(cur, yest);
       const dWeek = delta(cur, week);
-      const dk = dayDetail[i].date;
+      const dk = dayDetail[idx].date;
 
       if (isPct && cur <= 0) {
         cells[dk] = <span style={{ color: '#ccc' }}>—</span>;

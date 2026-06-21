@@ -16,12 +16,15 @@ export function AnalysisFunctionPage() {
   const { appCode, pageCode, blockCode } = useParams<{ appCode: string; pageCode: string; blockCode: string }>();
   const { functionMetrics, funcSummary, funcTrend, loading, timeRange, setTimeRange, fetchFunctionMetrics } = useAnalysisStore();
 
+  // URL has short blockCode (suffix); reconstruct full qualified code for API
+  const fullBlockCode = pageCode && blockCode ? `${pageCode}.${blockCode}` : '';
+
   const [trendOpen, setTrendOpen] = useState(false);
   const [trendTitle, setTrendTitle] = useState('');
   const [trendSubtitle, setTrendSubtitle] = useState('');
   const [trendCode, setTrendCode] = useState('');
 
-  useEffect(() => { if (appCode && pageCode && blockCode) fetchFunctionMetrics(appCode, pageCode, blockCode); }, [appCode, pageCode, blockCode, timeRange]);
+  useEffect(() => { if (appCode && pageCode && fullBlockCode) fetchFunctionMetrics(appCode, pageCode, fullBlockCode); }, [appCode, pageCode, fullBlockCode, timeRange]);
 
   const fmt = (v: number) => v >= 10000 ? `${(v / 10000).toFixed(1)}万` : v?.toLocaleString();
 
@@ -57,14 +60,14 @@ export function AnalysisFunctionPage() {
 
       {funcSummary && (
         <Row gutter={16} style={{ marginBottom: 16 }}>
-          <Col span={8}><Card size="small"><Statistic title="区块曝光PV" value={fmt(funcSummary.totalExposurePv)} /></Card></Col>
-          <Col span={8}><Card size="small"><Statistic title="区块曝光UV" value={fmt(funcSummary.totalExposureUv)} /></Card></Col>
+          <Col span={8}><Card size="small"><Statistic title="功能曝光PV" value={fmt(funcSummary.totalExposurePv)} /></Card></Col>
+          <Col span={8}><Card size="small"><Statistic title="功能曝光UV" value={fmt(funcSummary.totalExposureUv)} /></Card></Col>
           <Col span={8}><Card size="small"><Statistic title="功能数" value={funcSummary.functionCount} /></Card></Col>
         </Row>
       )}
 
       <Card style={{ marginBottom: 16 }}>
-        <TrendChart data={funcTrend.map((d) => ({ time: d.time.slice(5), exposurePv: d.exposurePv, exposureUv: d.exposureUv }))} loading={loading} height={300} />
+        <TrendChart data={funcTrend.map((d) => ({ time: d.time, exposurePv: d.exposurePv, exposureUv: d.exposureUv }))} loading={loading} height={300} />
       </Card>
 
       <Table bordered columns={columns} dataSource={functionMetrics} rowKey="funcCode" loading={loading} pagination={false} />

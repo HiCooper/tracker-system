@@ -17,13 +17,24 @@ export function TrendChart({ data, loading = false, height = 300 }: Props) {
   }
 
   const option = {
-    tooltip: { trigger: 'axis' as const },
+    tooltip: {
+      trigger: 'axis' as const,
+      formatter: (params: { name: string; seriesName: string; value: number; color: string }[]) => {
+        const time = params[0]?.name ?? '';
+        let html = `<div style="font-weight:600;margin-bottom:4px">${time}</div>`;
+        params.forEach((p) => {
+          html += `<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px"></span>${p.seriesName}: <b>${p.value?.toLocaleString()}</b></div>`;
+        });
+        return html;
+      },
+    },
     legend: { data: ['曝光PV', '曝光UV'], top: 0 },
-    grid: { left: 60, right: 20, top: 40, bottom: 30 },
+    grid: { left: 60, right: 20, top: 40, bottom: 40 },
     xAxis: {
       type: 'category' as const,
       data: data.map((d) => d.time),
-      axisLabel: { rotate: 30, fontSize: 11 },
+      axisLabel: { rotate: data.length > 12 ? 30 : 0, fontSize: 11 },
+      axisPointer: { show: true, label: { show: true, backgroundColor: '#333' } },
     },
     yAxis: {
       type: 'value' as const,
