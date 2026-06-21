@@ -1,0 +1,23 @@
+id: "D-20260617-001"
+timestamp: "2026-06-17T09:30:00"
+topic: "统一分析模块的用户口径(身份缝合 userKey),修复匿名访客 UV 漏计/「两套数」"
+context: >
+  老分析服务(流量分析 AnalysisService、事件分析 EventAnalysisService、会话分析 SessionAnalysisService、
+  平台数据渠道明细)用 uniq(user_id) 计 UV/DAU,匿名用户 user_id='' 全部塌缩为一个,严重漏计;
+  而新模块(高级/平台/行为/体验)用 userKey=if(user_id!='',user_id,anonymous_id),导致同一指标在不同
+  模块呈现不同数值(两套数)。
+chosen: >
+  将所有用户级 uniq 统一为 userKey 口径 uniqExact/uniqIf(if(user_id!='',user_id,anonymous_id), ...),
+  与身份缝合及新分析模块一致;device_count 仍用 anonymous_id。
+rejected:
+  - "保持 user_id 口径: 漏计匿名访客且与其它模块不一致,产品上是错误数据"
+  - "只改个别页面: 两套数会继续存在;一次性全量统一"
+rationale: >
+  统一口径消除模块间数值矛盾并正确计入匿名访客;复用已建身份缝合的用户主键定义。
+constraints_ref:
+  - "constraints.yaml: api_backward_compat(仅口径修正,响应结构不变)"
+impact:
+  files:
+    - "tracker-admin: service/AnalysisService, EventAnalysisService, SessionAnalysisService, PlatformDataService"
+  risk: "low"
+  verification: "纯 SQL 口径修正;数值正确性需 ClickHouse 验证"
