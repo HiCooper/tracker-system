@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Typography, Tabs, Table, Tag, Space, DatePicker } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Tabs, Table, Tag, Space, Select } from 'antd';
 import {
   ThunderboltOutlined, RiseOutlined, FallOutlined, EyeOutlined,
-  ClockCircleOutlined, FileTextOutlined, AlertOutlined,
+  ClockCircleOutlined, FileTextOutlined, AlertOutlined, AppstoreOutlined,
 } from '@ant-design/icons';
 import { usePlatformDataStore } from '../../../stores/platformDataStore';
+import { useSetupStore } from '../../../stores/setupStore';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-function CoreDataTab() {
+function CoreDataTab({ appCode }: { appCode?: string }) {
   const { coreMetrics, channels, pages, fetchCoreMetrics, loading } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchCoreMetrics({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD') });
-  }, []);
+    fetchCoreMetrics({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD'), appCode });
+  }, [appCode]);
 
   const m = coreMetrics;
 
@@ -65,14 +66,14 @@ function CoreDataTab() {
   );
 }
 
-function RealtimeTab() {
+function RealtimeTab({ appCode }: { appCode?: string }) {
   const { realtime, fetchRealtime } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchRealtime();
-    const timer = setInterval(() => fetchRealtime(), 30000);
+    fetchRealtime(appCode);
+    const timer = setInterval(() => fetchRealtime(appCode), 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [appCode]);
 
   const r = realtime;
 
@@ -104,12 +105,12 @@ function RealtimeTab() {
   );
 }
 
-function AccessAnalysisTab() {
+function AccessAnalysisTab({ appCode }: { appCode?: string }) {
   const { analysis, loading, fetchAnalysis } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchAnalysis({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD') });
-  }, []);
+    fetchAnalysis({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD'), appCode });
+  }, [appCode]);
 
   const a = analysis;
   const cols = [
@@ -139,12 +140,12 @@ function AccessAnalysisTab() {
   );
 }
 
-function RetentionTab() {
+function RetentionTab({ appCode }: { appCode?: string }) {
   const { retention, loading, fetchRetention } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchRetention({ startTime: dayjs().subtract(29, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD') });
-  }, []);
+    fetchRetention({ startTime: dayjs().subtract(29, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD'), appCode });
+  }, [appCode]);
 
   const r = retention;
   const days = [1, 2, 3, 7, 14, 30];
@@ -178,12 +179,12 @@ function RetentionTab() {
   );
 }
 
-function PageAnalysisTab() {
+function PageAnalysisTab({ appCode }: { appCode?: string }) {
   const { analysis, loading, fetchAnalysis } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchAnalysis({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD') });
-  }, []);
+    fetchAnalysis({ startTime: dayjs().subtract(6, 'd').format('YYYY-MM-DD'), endTime: dayjs().format('YYYY-MM-DD'), appCode });
+  }, [appCode]);
 
   const cols = [
     { title: '页面路径', dataIndex: 'path', key: 'path', render: (v: string) => <Text code>{v}</Text> },
@@ -213,12 +214,12 @@ function PageAnalysisTab() {
   );
 }
 
-function AnomalyTab() {
+function AnomalyTab({ appCode }: { appCode?: string }) {
   const { anomalies, fetchAnomalies } = usePlatformDataStore();
 
   useEffect(() => {
-    fetchAnomalies({ date: dayjs().format('YYYY-MM-DD') });
-  }, []);
+    fetchAnomalies({ date: dayjs().format('YYYY-MM-DD'), appCode });
+  }, [appCode]);
 
   return (
     <div>
@@ -249,16 +250,31 @@ function AnomalyTab() {
 
 export function PlatformDataPage() {
   const [tab, setTab] = useState('core');
+  const [appCode, setAppCode] = useState<string | undefined>(undefined);
+  const { apps, fetchApps } = useSetupStore();
+
+  useEffect(() => { fetchApps(); }, []);
+
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 16 }}>平台数据</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>平台数据</Title>
+        <Space>
+          <AppstoreOutlined style={{ color: '#999' }} />
+          <Select
+            value={appCode ?? ''} style={{ width: 180 }} size="small"
+            onChange={(v) => setAppCode(v || undefined)}
+            options={[{ label: '全部应用', value: '' }, ...apps.map(a => ({ label: a.appName, value: a.appCode }))]}
+          />
+        </Space>
+      </div>
       <Tabs activeKey={tab} onChange={setTab} items={[
-        { key: 'core', label: <Space><ThunderboltOutlined />核心数据</Space>, children: <CoreDataTab /> },
-        { key: 'realtime', label: <Space><ClockCircleOutlined />实时数据</Space>, children: <RealtimeTab /> },
-        { key: 'access', label: <Space><EyeOutlined />访问分析</Space>, children: <AccessAnalysisTab /> },
-        { key: 'retention', label: <Space><RiseOutlined />留存分析</Space>, children: <RetentionTab /> },
-        { key: 'page', label: <Space><FileTextOutlined />页面分析</Space>, children: <PageAnalysisTab /> },
-        { key: 'anomaly', label: <Space><AlertOutlined />异动分析</Space>, children: <AnomalyTab /> },
+        { key: 'core', label: <Space><ThunderboltOutlined />核心数据</Space>, children: <CoreDataTab appCode={appCode} /> },
+        { key: 'realtime', label: <Space><ClockCircleOutlined />实时数据</Space>, children: <RealtimeTab appCode={appCode} /> },
+        { key: 'access', label: <Space><EyeOutlined />访问分析</Space>, children: <AccessAnalysisTab appCode={appCode} /> },
+        { key: 'retention', label: <Space><RiseOutlined />留存分析</Space>, children: <RetentionTab appCode={appCode} /> },
+        { key: 'page', label: <Space><FileTextOutlined />页面分析</Space>, children: <PageAnalysisTab appCode={appCode} /> },
+        { key: 'anomaly', label: <Space><AlertOutlined />异动分析</Space>, children: <AnomalyTab appCode={appCode} /> },
       ]} />
     </div>
   );

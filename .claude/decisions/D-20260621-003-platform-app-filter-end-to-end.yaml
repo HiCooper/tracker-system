@@ -1,0 +1,27 @@
+id: "D-20260621-003"
+timestamp: "2026-06-21T12:00:00"
+topic: "平台数据查询侧打通可选 appCode 过滤,使 app 维度端到端可用(写入→查询→前端)"
+context: >
+  写入链路已落 sessions.app_code(D-20260621-002),events.app_code 自 V2 起亦有,但平台数据
+  (平台数据 overview 页:核心/渠道/页面/实时/分析/留存/异动)查询侧没有 app 过滤,
+  新维度只有数据没有出口,用户无法按 app 下钻。
+chosen: >
+  PlatformDataService 全部 7 个查询方法接受可选 appCode,用 appf()/appWhere() 追加
+  app_code 过滤(去引号防注入,复用 AdvancedAnalysisService.san);Controller 各端点加
+  可选 @RequestParam appCode;前端 PlatformDataPage 顶部加「全部应用/具体 app」下拉,
+  appCode 透传至 store→api→后端。BI 全局看板传 null(= 全部)。
+rejected:
+  - "同时给 SessionAnalysis/EventAnalysis 控制器加 appCode: 这两个端点当前无前端调用,会成为死参数,留待有消费方时再加"
+  - "流量分析(AnalysisService)再加 app_code: 其已按 SPM 路径 /apps/{appCode} 维度作用域,重复且冲突"
+  - "默认选中第一个 app: 改变既有「全局口径」默认行为,可能让人误读;默认仍为全部应用"
+rationale: >
+  让上一步落地的 app 维度真正可用(端到端),且只在有前端消费方的可见页面接入,避免死参数与重复作用域。
+constraints_ref:
+  - "api_backward_compat: appCode 可选,省略 == 原全局行为"
+  - "注入防护: 复用 san() 去单引号(与 Advanced/Experience/Metric 同一套防护)"
+impact:
+  files:
+    - "tracker-admin: service/PlatformDataService, controller/PlatformDataController, service/DashboardDataService(+test)"
+    - "apps/admin: services/platformDataApi, stores/platformDataStore, pages/.../PlatformDataPage"
+  risk: "low"
+  verification: "tracker-admin mvn -B test 93/93 通过;前端 tsc -b + eslint 通过;真实下钻数值需 ClickHouse 端到端验证"
