@@ -83,25 +83,26 @@ export interface AnalysisOverview {
 
 const BASE = '/v1/data-platform';
 
+// 可选 appCode 过滤(空 = 全部 app);后端 events/sessions 均含 app_code 维度。
 export const platformDataApi = {
-  getCoreMetrics: (params: { startTime: string; endTime: string }) =>
+  getCoreMetrics: (params: { startTime: string; endTime: string; appCode?: string }) =>
     api.get<CoreMetrics>(`${BASE}/core-metrics`, { params }).then((r) => r.data),
 
-  getChannelBreakdown: (params: { startTime: string; endTime: string }) =>
+  getChannelBreakdown: (params: { startTime: string; endTime: string; appCode?: string }) =>
     api.get<ChannelBreakdown[]>(`${BASE}/channels`, { params }).then((r) => r.data),
 
-  getPageBreakdown: (params: { startTime: string; endTime: string }) =>
+  getPageBreakdown: (params: { startTime: string; endTime: string; appCode?: string }) =>
     api.get<PageBreakdown[]>(`${BASE}/pages`, { params }).then((r) => r.data),
 
-  getRealtime: () =>
-    api.get<RealtimeSnapshot>(`${BASE}/realtime`).then((r) => r.data),
+  getRealtime: (params?: { appCode?: string }) =>
+    api.get<RealtimeSnapshot>(`${BASE}/realtime`, { params }).then((r) => r.data),
 
-  getAnalysisOverview: (params: { startTime: string; endTime: string }) =>
+  getAnalysisOverview: (params: { startTime: string; endTime: string; appCode?: string }) =>
     api.get<AnalysisOverview>(`${BASE}/analysis`, { params }).then((r) => r.data),
 
-  getRetention: (params: { startTime: string; endTime: string }) =>
+  getRetention: (params: { startTime: string; endTime: string; appCode?: string }) =>
     api.get<{ summary: RetentionSummary; cohorts: CohortRow[] }>(`${BASE}/retention`, { params }).then((r) => r.data),
 
-  getAnomalies: (params: { date: string }) =>
+  getAnomalies: (params: { date: string; appCode?: string }) =>
     api.get<AnomalyItem[]>(`${BASE}/anomalies`, { params }).then((r) => r.data),
 };

@@ -20,11 +20,11 @@ interface PlatformDataState {
   anomalies: AnomalyItem[];
   loading: boolean;
 
-  fetchCoreMetrics: (params: { startTime: string; endTime: string }) => Promise<void>;
-  fetchRealtime: () => Promise<void>;
-  fetchAnalysis: (params: { startTime: string; endTime: string }) => Promise<void>;
-  fetchRetention: (params: { startTime: string; endTime: string }) => Promise<void>;
-  fetchAnomalies: (params: { date: string }) => Promise<void>;
+  fetchCoreMetrics: (params: { startTime: string; endTime: string; appCode?: string }) => Promise<void>;
+  fetchRealtime: (appCode?: string) => Promise<void>;
+  fetchAnalysis: (params: { startTime: string; endTime: string; appCode?: string }) => Promise<void>;
+  fetchRetention: (params: { startTime: string; endTime: string; appCode?: string }) => Promise<void>;
+  fetchAnomalies: (params: { date: string; appCode?: string }) => Promise<void>;
 }
 
 export const usePlatformDataStore = create<PlatformDataState>((set) => ({
@@ -47,9 +47,9 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
     }
   },
 
-  fetchRealtime: async () => {
+  fetchRealtime: async (appCode?: string) => {
     try {
-      const realtime = await platformDataApi.getRealtime();
+      const realtime = await platformDataApi.getRealtime({ appCode });
       set({ realtime });
     } catch {
       /* keep previous state */
