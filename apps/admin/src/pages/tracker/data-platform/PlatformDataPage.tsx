@@ -6,6 +6,7 @@ import {
 } from '@ant-design/icons';
 import { usePlatformDataStore } from '../../../stores/platformDataStore';
 import { useSetupStore } from '../../../stores/setupStore';
+import { ChartPlaceholder } from '../../../components/ChartPlaceholder';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -34,7 +35,7 @@ function CoreDataTab({ appCode }: { appCode?: string }) {
         <Col span={6}><Card size="small"><Statistic title="支付转化率" value={m ? m.conversionRate + '%' : '—'} loading={loading} /></Card></Col>
       </Row>
       <Card size="small" title="核心指标趋势（近 7 天）" style={{ marginBottom: 16 }}>
-        <div style={{ height: 240, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>趋势图 — 接入后端数据后展示</div>
+        <ChartPlaceholder height={240} description="趋势图开发中" />
       </Card>
       <Row gutter={16}>
         <Col span={12}>
@@ -88,7 +89,7 @@ function RealtimeTab({ appCode }: { appCode?: string }) {
         </Row>
       </Card>
       <Row gutter={16}>
-        <Col span={12}><Card size="small" title="实时来源分布"><div style={{ height: 200, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>实时来源饼图</div></Card></Col>
+        <Col span={12}><Card size="small" title="实时来源分布"><ChartPlaceholder height={200} description="实时来源饼图开发中" /></Card></Col>
         <Col span={12}>
           <Card size="small" title="实时活跃页面 TOP 10">
             {r?.topPages && r.topPages.length > 0 ? r.topPages.map((s, i) => (
@@ -135,7 +136,7 @@ function AccessAnalysisTab({ appCode }: { appCode?: string }) {
       <Card size="small" title="访问渠道分析" style={{ marginBottom: 16 }}>
         <Table rowKey="channel" columns={cols} dataSource={a?.channels || []} loading={loading} size="small" pagination={false} />
       </Card>
-      <Card size="small" title="访问趋势"><div style={{ height: 200, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>访问趋势图</div></Card>
+      <Card size="small" title="访问趋势"><ChartPlaceholder height={200} description="访问趋势图开发中" /></Card>
     </div>
   );
 }
@@ -174,7 +175,7 @@ function RetentionTab({ appCode }: { appCode?: string }) {
             })),
           ]} />
       </Card>
-      <Card size="small" title="留存曲线"><div style={{ height: 200, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>留存曲线图</div></Card>
+      <Card size="small" title="留存曲线"><ChartPlaceholder height={200} description="留存曲线图开发中" /></Card>
     </div>
   );
 }

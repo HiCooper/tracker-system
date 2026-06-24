@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import { behaviorApi, type EventSummary, type FunnelData, type PathData, type RetentionData } from '../services/behaviorApi';
 
 interface BehaviorState {
@@ -30,6 +31,7 @@ export const useBehaviorStore = create<BehaviorState>((set) => ({
       const overview = await behaviorApi.getOverview(params);
       set({ overview, events: overview.topEvents, loading: false });
     } catch {
+      message.error({ content: '行为分析数据加载失败', key: 'behavior-error' });
       set({ loading: false });
     }
   },
@@ -40,6 +42,7 @@ export const useBehaviorStore = create<BehaviorState>((set) => ({
       const events = await behaviorApi.getEvents(params);
       set({ events, loading: false });
     } catch {
+      message.error({ content: '行为分析数据加载失败', key: 'behavior-error' });
       set({ loading: false });
     }
   },
@@ -50,6 +53,7 @@ export const useBehaviorStore = create<BehaviorState>((set) => ({
       const funnel = await behaviorApi.getFunnel(params);
       set({ funnel, loading: false });
     } catch {
+      message.error({ content: '行为分析数据加载失败', key: 'behavior-error' });
       set({ loading: false });
     }
   },
@@ -60,6 +64,7 @@ export const useBehaviorStore = create<BehaviorState>((set) => ({
       const pathData = await behaviorApi.getPath(params);
       set({ pathData, loading: false });
     } catch {
+      message.error({ content: '行为分析数据加载失败', key: 'behavior-error' });
       set({ loading: false });
     }
   },
@@ -70,6 +75,7 @@ export const useBehaviorStore = create<BehaviorState>((set) => ({
       const retention = await behaviorApi.getRetention(params);
       set({ retention, loading: false });
     } catch {
+      message.error({ content: '行为分析数据加载失败', key: 'behavior-error' });
       set({ loading: false });
     }
   },
