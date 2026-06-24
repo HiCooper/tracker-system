@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import { portraitApi, type PortraitDimension, type PortraitTag, type PortraitCrowd } from '../services/portraitApi';
 
 interface PortraitState {
@@ -31,6 +32,7 @@ export const usePortraitStore = create<PortraitState>((set) => ({
       const basic = await portraitApi.getBasicPortrait(params);
       set({ basicPortrait: basic, loading: false });
     } catch {
+      message.error({ content: '画像数据加载失败', key: 'portrait-error' });
       set({ loading: false });
     }
   },
@@ -50,6 +52,7 @@ export const usePortraitStore = create<PortraitState>((set) => ({
         loading: false,
       });
     } catch {
+      message.error({ content: '画像数据加载失败', key: 'portrait-error' });
       set({ loading: false });
     }
   },
@@ -69,6 +72,7 @@ export const usePortraitStore = create<PortraitState>((set) => ({
         loading: false,
       });
     } catch {
+      message.error({ content: '画像数据加载失败', key: 'portrait-error' });
       set({ loading: false });
     }
   },

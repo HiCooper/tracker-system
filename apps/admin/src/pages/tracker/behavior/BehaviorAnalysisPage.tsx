@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Typography, Tabs, Table, Tag, Space, Select, DatePicker, Button, Input } from 'antd';
 import { BarChartOutlined, FunnelPlotOutlined, NodeIndexOutlined, RiseOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { useBehaviorStore } from '../../../stores/behaviorStore';
+import { ChartPlaceholder } from '../../../components/ChartPlaceholder';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -45,7 +46,7 @@ function EventAnalysisTab() {
         <Col span={6}><Card size="small"><Statistic title="人均事件数" value={overview ? overview.avgEventsPerUser : avgPerUser} loading={loading && !overview} /></Card></Col>
       </Row>
       <Card size="small" title="事件趋势（近 14 天）" style={{ marginBottom: 16 }}>
-        <div style={{ height: 240, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>事件趋势图 — 接入后端数据后展示</div>
+        <ChartPlaceholder height={240} description="事件趋势图开发中" />
       </Card>
       <Card size="small" title="事件明细">
         <Table rowKey="eventType" columns={cols} dataSource={events} loading={loading} size="small" pagination={false} />
@@ -103,7 +104,7 @@ function FunnelTab() {
             ))}
           </div>
         ) : (
-          <div style={{ height: 300, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>点击"分析"查看漏斗可视化</div>
+          <ChartPlaceholder height={300} description={'点击"分析"查看漏斗可视化'} />
         )}
       </Card>
     </div>
@@ -133,7 +134,7 @@ function PathTab() {
         <Col span={8}><Card size="small"><Statistic title="平均深度" value={pathData?.avgDepth ?? '—'} suffix={pathData ? '页' : undefined} loading={loading} /></Card></Col>
         <Col span={8}><Card size="small"><Statistic title="页面数" value={pathData?.pageCount ?? '—'} loading={loading} /></Card></Col>
       </Row>
-      <Card size="small" title="Sankey 路径图"><div style={{ height: 350, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>路径流转图 — 接入后端数据后展示</div></Card>
+      <Card size="small" title="Sankey 路径图"><ChartPlaceholder height={350} description="路径流转图开发中" /></Card>
     </div>
   );
 }
@@ -162,7 +163,7 @@ function RetentionBehaviorTab() {
         <Col span={6}><Card size="small"><Statistic title="7 日留存" value={retention ? (retention.day7Rate * 100).toFixed(1) + '%' : '—'} loading={loading} /></Card></Col>
         <Col span={6}><Card size="small"><Statistic title="30 日留存" value={retention ? (retention.day30Rate * 100).toFixed(1) + '%' : '—'} loading={loading} /></Card></Col>
       </Row>
-      <Card size="small" title="留存曲线"><div style={{ height: 240, background: '#fafafa', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>留存曲线图 — 接入后端数据后展示</div></Card>
+      <Card size="small" title="留存曲线"><ChartPlaceholder height={240} description="留存曲线图开发中" /></Card>
     </div>
   );
 }

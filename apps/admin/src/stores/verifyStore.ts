@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import api from '../services/api';
 
 export interface SchemaAttr { name: string; type: string; required: boolean; desc: string; enum?: string[]; range?: { min: number; max: number }; }
@@ -32,6 +33,7 @@ export const useVerifyStore = create<VerifyState>((set) => ({
       const schemas = await api.get<EventSchema[]>('/v1/engineering/verify/schemas').then(r => r.data);
       set({ schemas, loading: false });
     } catch {
+      message.error({ content: '加载事件 Schema 失败', key: 'verify-error' });
       set({ loading: false });
     }
   },
@@ -52,6 +54,7 @@ export const useVerifyStore = create<VerifyState>((set) => ({
       const failures = await api.get<VerifyFailure[]>('/v1/monitor/quality/failures').then(r => r.data);
       set({ running: false, result, failures });
     } catch {
+      message.error({ content: '校验执行失败', key: 'verify-error' });
       set({ running: false });
     }
   },

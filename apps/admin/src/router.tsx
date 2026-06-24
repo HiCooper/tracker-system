@@ -4,6 +4,7 @@ import { Spin } from 'antd';
 import { AdminLayout } from './layouts/AdminLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 // Route-level lazy loading — splits bundle per page group
 // Named-exports are wrapped via `.then()` to satisfy React.lazy's default-export requirement
@@ -111,6 +112,10 @@ export const router = createBrowserRouter([
       { path: 'tracker/advanced/:appCode/path', element: <LazyPage><PathAnalysisPage /></LazyPage> },
       // Monitoring
       { path: 'tracker/monitor', element: <LazyPage><HealthMonitorPage /></LazyPage> },
+      // 兜底:布局内未匹配的路径显示 404(而非白屏)
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
+  // 登录布局之外的兜底
+  { path: '*', element: <NotFoundPage /> },
 ]);

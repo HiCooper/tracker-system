@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import { experienceApi, type HeatmapData, type HeatmapRequest, type UserPortrait, type PageListItem, type SessionRecord, type ConversionStep, type AnalysisReport } from '../services/experienceApi';
 
 interface ExperienceState {
@@ -43,6 +44,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const data = await experienceApi.getHeatmap(params);
       set({ heatmapData: data, heatmapLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ heatmapLoading: false });
     }
   },
@@ -53,6 +55,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const data = await experienceApi.getPortrait(params);
       set({ portrait: data, portraitLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ portraitLoading: false });
     }
   },
@@ -63,6 +66,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const pages = await experienceApi.listPages(params);
       set({ pages, pagesLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ pagesLoading: false });
     }
   },
@@ -73,6 +77,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const sessions = await experienceApi.listSessions(params);
       set({ sessions, sessionsLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ sessionsLoading: false });
     }
   },
@@ -83,6 +88,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const conversion = await experienceApi.getConversion(params);
       set({ conversion, conversionLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ conversionLoading: false });
     }
   },
@@ -93,6 +99,7 @@ export const useExperienceStore = create<ExperienceState>((set) => ({
       const reports = await experienceApi.listReports();
       set({ reports, reportsLoading: false });
     } catch {
+      message.error({ content: '体验分析数据加载失败', key: 'experience-error' });
       set({ reportsLoading: false });
     }
   },

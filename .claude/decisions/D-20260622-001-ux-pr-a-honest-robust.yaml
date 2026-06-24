@@ -1,0 +1,27 @@
+id: "D-20260622-001"
+timestamp: "2026-06-22T10:00:00"
+topic: "前端交互 PR-A「诚实与健壮」:404 兜底 + 错误不再静默 + 占位假图诚实化"
+context: >
+  交互 review 发现三类高影响问题:无 404 兜底路由(错误 URL 白屏)、多个 store 的 catch
+  静默吞错(用户无法区分加载中/失败/无数据)、生产页面存在 8 处灰底假图表
+  (「— 接入后端数据后展示」)伪装成即将出数的真实图表。
+chosen: >
+  1) 新增 NotFoundPage(Antd Result 404)+ 路由 path:'*' 兜底(布局内/外各一);
+  2) 5 个 store(behavior/experience/portrait/verify/platform)的 catch 统一 message.error,
+     用稳定 key 去重避免堆叠;唯一的 30s 轮询 fetchRealtime 保持静默(注释说明)避免每 30s 弹错;
+  3) 抽 ChartPlaceholder(Antd Empty)替换 8 处灰盒假图,呈现诚实「开发中」空态。
+rejected:
+  - "所有 catch 一律弹错(含轮询): 实时数据 30s 轮询会每 30s 弹错刷屏,故轮询保持静默"
+  - "页面层逐个加 error 态 + 重试按钮: 改动面大、归入 PR-B 一致性重构;PR-A 先用 store 层 message 低成本兜底"
+  - "占位灰盒接入真实图表库: 属功能开发(图表能力),非本次诚实化范围;先以 Empty 占位"
+  - "LoginPage 错误改通用文案: api 拦截器已统一净化错误信息,再泛化反而损失「密码错误」等有效反馈,故不改"
+constraints_ref:
+  - "anti_goals: 不编造数据/指标(假图表诚实化)"
+  - "约束: 错误必须对用户可见(消除静默失败)"
+impact:
+  files:
+    - "apps/admin: components/ChartPlaceholder(新), pages/NotFoundPage(新), router"
+    - "apps/admin stores: behavior/experience/portrait/verify/platformData"
+    - "apps/admin pages: behavior/BehaviorAnalysisPage, data-platform/PlatformDataPage"
+  risk: "low"
+  verification: "tsc -b 通过、eslint 0 error、vite build 成功"

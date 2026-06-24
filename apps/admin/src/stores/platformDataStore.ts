@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { message } from 'antd';
 import {
   platformDataApi,
   type CoreMetrics,
@@ -43,6 +44,7 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
       const coreMetrics = await platformDataApi.getCoreMetrics(params);
       set({ coreMetrics, loading: false });
     } catch {
+      message.error({ content: '平台数据加载失败', key: 'platform-error' });
       set({ loading: false });
     }
   },
@@ -52,7 +54,7 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
       const realtime = await platformDataApi.getRealtime({ appCode });
       set({ realtime });
     } catch {
-      /* keep previous state */
+      /* 实时数据每 30s 轮询,失败时静默保留上次值,避免每 30s 弹错打扰 */
     }
   },
 
@@ -62,6 +64,7 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
       const analysis = await platformDataApi.getAnalysisOverview(params);
       set({ analysis, channels: analysis.channels, pages: analysis.pages, loading: false });
     } catch {
+      message.error({ content: '平台数据加载失败', key: 'platform-error' });
       set({ loading: false });
     }
   },
@@ -72,6 +75,7 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
       const retention = await platformDataApi.getRetention(params);
       set({ retention, loading: false });
     } catch {
+      message.error({ content: '平台数据加载失败', key: 'platform-error' });
       set({ loading: false });
     }
   },
@@ -81,7 +85,7 @@ export const usePlatformDataStore = create<PlatformDataState>((set) => ({
       const anomalies = await platformDataApi.getAnomalies(params);
       set({ anomalies });
     } catch {
-      /* keep previous state */
+      message.error({ content: '异动数据加载失败', key: 'platform-error' });
     }
   },
 }));
