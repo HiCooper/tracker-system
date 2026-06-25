@@ -120,7 +120,7 @@ export function PlanDetailPage() {
           {/* Events */}
           <Card size="small" title={<span style={{ fontWeight: 600, fontSize: 14 }}>事件定义 ({currentPlan.events?.length || 0})</span>}
             style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <Table bordered columns={eventColumns} dataSource={currentPlan.events} rowKey="eventKey"
+            <Table scroll={{ x: 'max-content' }} bordered columns={eventColumns} dataSource={currentPlan.events} rowKey="eventKey"
               pagination={false} size="small"
               locale={{ emptyText: '该方案暂无事件定义' }} />
           </Card>

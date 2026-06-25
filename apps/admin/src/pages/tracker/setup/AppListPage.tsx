@@ -32,7 +32,7 @@ export function AppListPage() {
 
   const columns: ColumnsType<SpmApp> = [
     { title: '应用名称', dataIndex: 'appName', key: 'appName', width: 180,
-      render: (n: string, r) => <a onClick={() => navigate(`/tracker/setup/${r.id}`)} style={{ fontWeight: 500 }}>{n}</a> },
+      render: (n: string, r) => <Typography.Link onClick={() => navigate(`/tracker/setup/${r.id}`)} style={{ fontWeight: 500 }}>{n}</Typography.Link> },
     { title: '应用标识', dataIndex: 'appCode', key: 'appCode', width: 180,
       render: (c: string) => (
         <code style={{ background: '#F1F5F9', padding: '2px 8px', borderRadius: 4, fontSize: 13, color: '#1E40AF' }}>
@@ -75,7 +75,7 @@ export function AppListPage() {
           { title: '应用总数', value: stats.total, color: '#1E40AF', icon: <AppstoreOutlined /> },
           { title: '页面总数', value: stats.totalPages, color: '#16A34A', icon: <FileTextOutlined /> },
         ].map((s, i) => (
-          <Col span={6} key={i}>
+          <Col xs={24} sm={12} lg={6} key={i}>
             <Card size="small" style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <Statistic title={<Text style={{ fontSize: 12, color: '#64748B' }}>{s.title}</Text>}
                 value={s.value} valueStyle={{ fontSize: 24, fontWeight: 700, color: s.color }} prefix={s.icon} />
@@ -86,7 +86,7 @@ export function AppListPage() {
 
       {/* Table */}
       <Card size="small" style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <Table columns={columns} dataSource={apps} rowKey="id" loading={loading}
+        <Table scroll={{ x: 'max-content' }} columns={columns} dataSource={apps} rowKey="id" loading={loading}
           pagination={{ size: 'small', showSizeChanger: false, showTotal: (t) => `共 ${t} 个应用` }}
           size="middle"
           locale={{ emptyText: '暂无应用，点击「新建应用」开始创建' }} />

@@ -46,7 +46,7 @@ function SchemaRegistryTab() {
           }
           extra={<Space><Button size="small" type="link">编辑</Button><Button size="small" type="link" danger>删除</Button></Space>}
         >
-          <Table rowKey="name" size="small" pagination={false}
+          <Table scroll={{ x: 'max-content' }} rowKey="name" size="small" pagination={false}
             dataSource={schema.attributes}
             columns={[
               { title: '属性名', dataIndex: 'name', key: 'name', render: (v: string) => <Text code style={{ fontSize: 11 }}>{v}</Text> },
@@ -120,7 +120,7 @@ function RunVerificationTab() {
           </Row>
 
           <Card size="small" title="验证失败详情" style={{ marginBottom: 16 }}>
-            <Table rowKey={(r: any) => r.attr + r.error} size="small" pagination={false}
+            <Table scroll={{ x: 'max-content' }} rowKey={(r: any) => r.attr + r.error} size="small" pagination={false}
               dataSource={failures}
               columns={[
                 {
@@ -173,7 +173,7 @@ function VerificationHistoryTab() {
         </Space>
       </Card>
 
-      <Table rowKey="id" size="small"
+      <Table scroll={{ x: 'max-content' }} rowKey="id" size="small"
         dataSource={reports}
         columns={[
           { title: '报告名称', dataIndex: 'name', key: 'name', render: (v: string) => <Text strong style={{ fontSize: 13 }}>{v}</Text> },

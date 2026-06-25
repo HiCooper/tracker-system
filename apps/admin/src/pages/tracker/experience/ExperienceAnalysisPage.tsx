@@ -49,7 +49,7 @@ function SessionReplayTab() {
         <Col span={6}><Card size="small"><Statistic title="均页面数" value={sessions.length > 0 ? (totalPages / sessions.length).toFixed(1) : '—'} loading={sessionsLoading} /></Card></Col>
       </Row>
       <Card size="small" title="最近会话">
-        <Table rowKey="id" columns={cols} dataSource={sessions} loading={sessionsLoading} size="small" pagination={false} />
+        <Table scroll={{ x: 'max-content' }} rowKey="id" columns={cols} dataSource={sessions} loading={sessionsLoading} size="small" pagination={false} />
       </Card>
     </div>
   );

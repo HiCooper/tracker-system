@@ -4,6 +4,7 @@ import { HomeOutlined } from '@ant-design/icons';
 import { useParams, Link } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { useAnalysisStore } from '../../../stores/analysisStore';
+import { formatNumber as fmt } from '../../../utils/format';
 import { TrendChart } from '../../../components/charts/TrendChart';
 import { TrendDetailModal } from '../../../components/trend/TrendDetailModal';
 import type { PageMetric } from '../../../types/analysis';
@@ -22,7 +23,6 @@ export function AnalysisPagePage() {
   const [trendSubtitle, setTrendSubtitle] = useState('');
   const [trendCode, setTrendCode] = useState('');
 
-  const fmt = (v: number) => v >= 10000 ? `${(v / 10000).toFixed(1)}万` : v?.toLocaleString();
 
   const columns: ColumnsType<PageMetric> = [
     {
@@ -68,7 +68,7 @@ export function AnalysisPagePage() {
         <TrendChart data={pageTrend.map((d) => ({ time: d.time, exposurePv: d.exposurePv, exposureUv: d.exposureUv }))} loading={loading} height={300} />
       </Card>
 
-      <Table bordered columns={columns} dataSource={pageMetrics} rowKey="pageCode" loading={loading} pagination={false} />
+      <Table scroll={{ x: 'max-content' }} bordered columns={columns} dataSource={pageMetrics} rowKey="pageCode" loading={loading} pagination={false} />
 
       <TrendDetailModal open={trendOpen} title={trendTitle} subtitle={trendSubtitle} code={trendCode} onClose={() => setTrendOpen(false)} />
     </div>

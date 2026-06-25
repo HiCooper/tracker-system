@@ -13,6 +13,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import type { RecentErrorEvent } from '../../services/healthApi';
 import { useHealthStore } from '../../stores/healthStore';
+import { formatNumber } from '../../utils/format';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -37,7 +38,7 @@ const INFRA_SERVICES: ServiceHealth[] = [
 
 /** 数值展示:null/undefined 统一显示为「未采集」,避免渲染崩溃与编造数值。 */
 function num(v: number | null | undefined): string {
-  return v == null ? '未采集' : (v >= 10000 ? `${(v / 10000).toFixed(1)}万` : v.toLocaleString());
+  return formatNumber(v, '未采集');
 }
 
 /** 无采集来源板块的占位:展示后端给出的 reason,而非伪造数据。 */
@@ -65,7 +66,7 @@ function RecentErrorTable({ errors, loading }: { errors: RecentErrorEvent[]; loa
       render: (v: string) => <Text style={{ fontSize: 11, color: '#999' }}>{v ? dayjs(v).fromNow() : '—'}</Text> },
   ];
   return (
-    <Table rowKey="eventId" columns={columns} dataSource={errors} loading={loading} size="small"
+    <Table scroll={{ x: 'max-content' }} rowKey="eventId" columns={columns} dataSource={errors} loading={loading} size="small"
       pagination={false} locale={{ emptyText: <Empty description="近期无 error 事件" /> }} />
   );
 }

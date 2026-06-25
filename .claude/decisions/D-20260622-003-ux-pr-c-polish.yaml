@@ -1,0 +1,25 @@
+id: "D-20260622-003"
+timestamp: "2026-06-22T13:00:00"
+topic: "前端交互 PR-C「打磨」:统一格式化工具 + 表格横向滚动 + 响应式栅格 + a11y 修正"
+context: >
+  数字格式三套并存(1,000,000 / 100.0万 / —);21 个表格缺 scroll={{x}} 在窄屏/多列时右侧列被裁剪;
+  统计卡 Col 用固定 span(span={6}/{4})移动端过窄;AppListPage 用 <a onClick> 触发导航(jsx-a11y 报错)。
+chosen: >
+  1) 新增 utils/format(formatNumber/formatPercent/formatDuration),收口重复的「万」缩写逻辑,
+     在 4 个有重复 fmt 的页(3 analysis + Funnel)以 import 别名替换本地定义,HealthMonitorPage 的 num 委托复用;
+  2) 给所有缺失的表格补 scroll={{ x: 'max-content' }}(19 个内联 + PathAnalysisPage 多行,共覆盖);
+  3) PlatformDataPage 统计/卡片栅格与 AppListPage 应用卡片改响应式断点(xs/sm/md/lg);
+  4) 顺手修正 AppListPage 既有 a11y 报错:<a onClick> → <Typography.Link>(语义/可访问性,且保留链接样式)。
+rejected:
+  - "一次性把 17 页所有内联格式化都改用 util: churn 过大;先收口有重复 fmt 的页 + 提供工具,其余增量采用"
+  - "响应式覆盖所有页所有 Col: 无法逐页可视验证、风险高;先做最突出的统计卡两页,采用标准 Antd 断点映射"
+  - "保留 <a onClick>: jsx-a11y error;Typography.Link 渲染 <a> 但不触发该规则且语义更准"
+constraints_ref:
+  - "约束: 交互一致性(数值格式统一)"
+  - "可访问性: 表格不裁剪、链接语义正确"
+impact:
+  files:
+    - "apps/admin: utils/format(新)"
+    - "apps/admin pages: analysis/{AnalysisPage,AnalysisBlock,AnalysisFunction}Page, advanced/{Funnel,Path}AnalysisPage, HealthMonitorPage, setup/AppListPage, data-platform/PlatformDataPage, 以及补 table scroll 的其余页"
+  risk: "low"
+  verification: "tsc -b 通过、eslint 0 error(含清除既有 anchor 报错)、vite build 成功"

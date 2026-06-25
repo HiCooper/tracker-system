@@ -145,6 +145,7 @@ export function PathAnalysisPage() {
                   <Card title="热门路径 TOP 20" size="small">
                     <Table
                       bordered
+                      scroll={{ x: 'max-content' }}
                       columns={topPathColumns}
                       dataSource={pathTopPaths}
                       rowKey={(r) => r.path.join('->')}
