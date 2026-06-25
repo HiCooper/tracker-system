@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Card, Row, Col, DatePicker, Typography, Spin, Statistic } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useAnalysisStore } from '../../../stores/analysisStore';
+import { EmptyState } from '../../../components/EmptyState';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -27,7 +28,14 @@ export function AnalysisAppPage() {
         />
       </div>
 
-      {loading ? <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div> : (
+      {loading ? <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div> :
+        appMetrics.length === 0 ? (
+          <EmptyState
+            description="暂无应用数据,请先在「埋点管理」创建应用并接入采集"
+            actionText="去创建应用"
+            onAction={() => navigate('/tracker/setup')}
+          />
+        ) : (
         <Row gutter={[16, 16]}>
           {appMetrics.map((a) => (
             <Col key={a.appCode} xs={24} sm={12} md={8}>

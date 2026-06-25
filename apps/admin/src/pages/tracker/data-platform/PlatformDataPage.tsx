@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Row, Col, Statistic, Typography, Tabs, Table, Tag, Space, Select } from 'antd';
 import {
   ThunderboltOutlined, RiseOutlined, FallOutlined, EyeOutlined,
@@ -7,6 +8,7 @@ import {
 import { usePlatformDataStore } from '../../../stores/platformDataStore';
 import { useSetupStore } from '../../../stores/setupStore';
 import { ChartPlaceholder } from '../../../components/ChartPlaceholder';
+import { EmptyState } from '../../../components/EmptyState';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -46,7 +48,7 @@ function CoreDataTab({ appCode }: { appCode?: string }) {
                 <Text style={{ color: '#999' }}>{s.uv.toLocaleString()} 人</Text>
               </div>
             )) : (
-              <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无数据</div>
+              <EmptyState image="simple" description="暂无数据" />
             )}
           </Card>
         </Col>
@@ -58,7 +60,7 @@ function CoreDataTab({ appCode }: { appCode?: string }) {
                 <Text style={{ color: '#999' }}>{s.pv.toLocaleString()} PV</Text>
               </div>
             )) : (
-              <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无数据</div>
+              <EmptyState image="simple" description="暂无数据" />
             )}
           </Card>
         </Col>
@@ -97,7 +99,7 @@ function RealtimeTab({ appCode }: { appCode?: string }) {
                 <Space><Tag>{i + 1}</Tag>{s.name}</Space><Text style={{ color: '#999' }}>{s.count.toLocaleString()} 人</Text>
               </div>
             )) : (
-              <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无数据</div>
+              <EmptyState image="simple" description="暂无数据" />
             )}
           </Card>
         </Col>
@@ -242,7 +244,7 @@ function AnomalyTab({ appCode }: { appCode?: string }) {
             <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{a.detail}</div>
           </Card>
         )) : (
-          <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>暂无异常数据</div>
+          <EmptyState image="simple" description="暂无异常数据" />
         )}
       </Card>
     </div>
@@ -250,9 +252,21 @@ function AnomalyTab({ appCode }: { appCode?: string }) {
 }
 
 export function PlatformDataPage() {
-  const [tab, setTab] = useState('core');
-  const [appCode, setAppCode] = useState<string | undefined>(undefined);
+  // tab / appCode 落 URL query,支持刷新保留与链接分享(深链)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'core';
+  const appCode = searchParams.get('app') || undefined;
   const { apps, fetchApps } = useSetupStore();
+
+  const patchParams = (patch: Record<string, string | undefined>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(patch)) {
+        if (v) next.set(k, v); else next.delete(k);
+      }
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => { fetchApps(); }, []);
 
@@ -264,12 +278,12 @@ export function PlatformDataPage() {
           <AppstoreOutlined style={{ color: '#999' }} />
           <Select
             value={appCode ?? ''} style={{ width: 180 }} size="small"
-            onChange={(v) => setAppCode(v || undefined)}
+            onChange={(v) => patchParams({ app: v || undefined })}
             options={[{ label: '全部应用', value: '' }, ...apps.map(a => ({ label: a.appName, value: a.appCode }))]}
           />
         </Space>
       </div>
-      <Tabs activeKey={tab} onChange={setTab} items={[
+      <Tabs activeKey={tab} onChange={(k) => patchParams({ tab: k })} items={[
         { key: 'core', label: <Space><ThunderboltOutlined />核心数据</Space>, children: <CoreDataTab appCode={appCode} /> },
         { key: 'realtime', label: <Space><ClockCircleOutlined />实时数据</Space>, children: <RealtimeTab appCode={appCode} /> },
         { key: 'access', label: <Space><EyeOutlined />访问分析</Space>, children: <AccessAnalysisTab appCode={appCode} /> },
