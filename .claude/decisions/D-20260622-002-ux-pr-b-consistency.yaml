@@ -1,0 +1,29 @@
+id: "D-20260622-002"
+timestamp: "2026-06-22T12:00:00"
+topic: "前端交互 PR-B「一致性」:路由驱动菜单 + 全局面包屑 + EmptyState + 筛选落 URL"
+context: >
+  AdminLayout 用 13 分支 if 链手维护 selectedKey + 重复的 openKeys 逻辑(新增路由易漏配);
+  无面包屑;18 处「暂无数据」纯文本 div 各写各的、无行动引导;Tab/筛选只存组件态,刷新即丢、
+  无法分享带条件的链接。
+chosen: >
+  1) 新增 config/nav.tsx 作为导航单一事实源,菜单/selectedKey(最长前缀匹配)/openKeys/面包屑
+     全部由此派生,删除两段 if 链;
+  2) AdminLayout 加全局面包屑,仅在顶层栏目页(pathname==叶子)展示,下钻页沿用各自页面内
+     面包屑,避免双面包屑;
+  3) 新增 EmptyState(可带行动按钮),先落地最高价值处:PlatformDataPage 4 处空态 +
+     AnalysisAppPage 无数据时引导「去创建应用」;
+  4) PlatformDataPage 的 tab/appCode 落 URL query(useSearchParams, replace),支持刷新保留与
+     链接分享,作为 URL-state 模式样板。
+rejected:
+  - "全局面包屑覆盖所有页(含下钻): 会与 Funnel/Analysis/Debug 等页自带面包屑双重渲染;改为仅顶层页展示"
+  - "一次性替换全部 18 处空态: 跨 ~10 文件churn 大、风险高;先立组件 + 高价值页落地,其余页增量采用"
+  - "URL-state 一次性改造所有多 tab 页: 范围过大;先在旗舰页 PlatformDataPage 立样板"
+constraints_ref:
+  - "约束: 交互一致性(同一概念统一实现)"
+  - "可维护性: 路由/菜单单一事实源,新增页只登记一处"
+impact:
+  files:
+    - "apps/admin: config/nav.tsx(新), components/EmptyState.tsx(新), layouts/AdminLayout"
+    - "apps/admin pages: data-platform/PlatformDataPage, analysis/AnalysisAppPage"
+  risk: "low"
+  verification: "tsc -b 通过、eslint 0 error、vite build 成功;菜单选中/展开与原行为一致(最长前缀匹配)"
