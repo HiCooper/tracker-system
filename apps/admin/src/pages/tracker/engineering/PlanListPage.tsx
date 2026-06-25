@@ -131,7 +131,7 @@ export function PlanListPage() {
       <Card size="small" style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
         title={<Tabs activeKey={statusFilter} onChange={setStatusFilter} items={tabItems} style={{ marginBottom: -16 }} />}
         bodyStyle={{ paddingTop: 0 }}>
-        <Table columns={columns} dataSource={plans} rowKey="id" loading={loading}
+        <Table scroll={{ x: 'max-content' }} columns={columns} dataSource={plans} rowKey="id" loading={loading}
           pagination={{ size: 'small', showSizeChanger: false, showTotal: (t) => `共 ${t} 条` }}
           size="middle" style={{ marginTop: -8 }}
           locale={{ emptyText: '暂无方案，点击上方「新建方案」开始创建' }} />

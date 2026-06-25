@@ -49,7 +49,7 @@ function EventAnalysisTab() {
         <ChartPlaceholder height={240} description="事件趋势图开发中" />
       </Card>
       <Card size="small" title="事件明细">
-        <Table rowKey="eventType" columns={cols} dataSource={events} loading={loading} size="small" pagination={false} />
+        <Table scroll={{ x: 'max-content' }} rowKey="eventType" columns={cols} dataSource={events} loading={loading} size="small" pagination={false} />
       </Card>
     </div>
   );

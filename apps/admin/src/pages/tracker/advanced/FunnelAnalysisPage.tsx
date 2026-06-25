@@ -9,14 +9,13 @@ import { useSetupStore } from '../../../stores/setupStore';
 import { FunnelChart } from '../../../components/charts/FunnelChart';
 import { FunnelTrendChart } from '../../../components/charts/FunnelTrendChart';
 import type { FunnelStep, FunnelStepDef } from '../../../types/advancedAnalysis';
+import { formatNumber as fmt } from '../../../utils/format';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const EVENT_TYPES = ['page_view', 'click', 'exposure', 'scroll', 'custom'];
-
-function fmt(v: number) { return v >= 10000 ? `${(v / 10000).toFixed(1)}万` : v?.toLocaleString(); }
 
 export function FunnelAnalysisPage() {
   const { appCode } = useParams<{ appCode: string }>();
@@ -164,7 +163,7 @@ export function FunnelAnalysisPage() {
           )}
 
           {/* Detail Table */}
-          <Table bordered columns={columns} dataSource={funnelSteps} rowKey="stepIndex" loading={loading} pagination={false} />
+          <Table scroll={{ x: 'max-content' }} bordered columns={columns} dataSource={funnelSteps} rowKey="stepIndex" loading={loading} pagination={false} />
         </>
       )}
     </div>

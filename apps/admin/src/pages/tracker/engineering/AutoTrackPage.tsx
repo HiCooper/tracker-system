@@ -97,7 +97,7 @@ function AutoEventManagement() {
       </Row>
 
       <Card size="small" title="自动发现事件列表">
-        <Table rowKey="code" columns={cols} dataSource={filtered} size="small" pagination={{ pageSize: 10, showTotal: (t: number) => `共 ${t} 个事件` }} />
+        <Table scroll={{ x: 'max-content' }} rowKey="code" columns={cols} dataSource={filtered} size="small" pagination={{ pageSize: 10, showTotal: (t: number) => `共 ${t} 个事件` }} />
       </Card>
     </div>
   );
@@ -130,7 +130,7 @@ function DataBackfillTab() {
       </Row>
 
       <Card size="small" title="回溯操作历史" style={{ marginBottom: 16 }}>
-        <Table rowKey="date" size="small" pagination={false} dataSource={backfillHistory}
+        <Table scroll={{ x: 'max-content' }} rowKey="date" size="small" pagination={false} dataSource={backfillHistory}
           columns={[
             { title: '日期', dataIndex: 'date', key: 'date', width: 100 },
             { title: '操作', dataIndex: 'action', key: 'action' },

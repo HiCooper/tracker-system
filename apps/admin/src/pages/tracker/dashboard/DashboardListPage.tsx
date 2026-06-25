@@ -66,7 +66,7 @@ export function DashboardListPage() {
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>新建看板</Button>
       </div>
 
-      <Table columns={columns} dataSource={dashboards} rowKey="id" loading={loading} pagination={false} />
+      <Table scroll={{ x: 'max-content' }} columns={columns} dataSource={dashboards} rowKey="id" loading={loading} pagination={false} />
 
       {/* Create Modal */}
       <Modal title="新建看板" open={modalOpen} onOk={handleCreate} onCancel={() => { setModalOpen(false); form.resetFields(); }}>

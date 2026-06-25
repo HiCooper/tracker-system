@@ -87,7 +87,7 @@ export function FunctionListPage() {
       </Row>
 
       <Card size="small" style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <Table columns={columns} dataSource={functions} rowKey="id" loading={loading}
+        <Table scroll={{ x: 'max-content' }} columns={columns} dataSource={functions} rowKey="id" loading={loading}
           pagination={{ size: 'small', showSizeChanger: false, showTotal: (t) => `共 ${t} 个功能` }}
           size="middle" locale={{ emptyText: '暂无功能，点击「添加功能」开始创建' }} />
       </Card>

@@ -83,7 +83,7 @@ function TagAnalysisTab() {
         <Col span={6}><Card size="small"><Statistic title="自定义标签" value={tags?.customTags ?? '—'} loading={loading} /></Card></Col>
       </Row>
       <Card size="small" title="标签列表">
-        <Table rowKey="name" columns={cols} dataSource={tags?.tagList || []} loading={loading} size="small" pagination={false} />
+        <Table scroll={{ x: 'max-content' }} rowKey="name" columns={cols} dataSource={tags?.tagList || []} loading={loading} size="small" pagination={false} />
       </Card>
     </div>
   );

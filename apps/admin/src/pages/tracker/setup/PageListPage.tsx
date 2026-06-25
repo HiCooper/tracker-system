@@ -81,7 +81,7 @@ export function PageListPage() {
       </Row>
 
       <Card size="small" style={{ borderRadius: 8, border: '1px solid #DBEAFE', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <Table columns={columns} dataSource={pages} rowKey="id" loading={loading}
+        <Table scroll={{ x: 'max-content' }} columns={columns} dataSource={pages} rowKey="id" loading={loading}
           pagination={{ size: 'small', showSizeChanger: false, showTotal: (t) => `共 ${t} 个页面` }}
           size="middle" locale={{ emptyText: '暂无页面，点击「添加页面」开始创建' }} />
       </Card>

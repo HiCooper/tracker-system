@@ -53,7 +53,7 @@ function TagManagementTab() {
         <Col span={6}><Card size="small"><Statistic title="计算标签" value={tags.filter((t: TagDef) => t.type === 'computed').length} prefix={<ThunderboltOutlined />} /></Card></Col>
       </Row>
       <Card size="small" title="标签列表">
-        <Table rowKey="id" columns={cols} dataSource={filtered} loading={loading} size="small" pagination={{ pageSize: 10 }} />
+        <Table scroll={{ x: 'max-content' }} rowKey="id" columns={cols} dataSource={filtered} loading={loading} size="small" pagination={{ pageSize: 10 }} />
       </Card>
     </div>
   );

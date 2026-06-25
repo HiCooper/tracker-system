@@ -25,22 +25,22 @@ function CoreDataTab({ appCode }: { appCode?: string }) {
   return (
     <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="访问人数 (UV)" value={m?.uv ?? '—'} loading={loading} suffix={m ? <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} /> : undefined} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="打开次数" value={m?.sessions ?? '—'} loading={loading} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="访问页面数 (PV)" value={m?.pv ?? '—'} loading={loading} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="新用户数" value={m?.newUsers ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="访问人数 (UV)" value={m?.uv ?? '—'} loading={loading} suffix={m ? <RiseOutlined style={{ color: '#52c41a', fontSize: 14 }} /> : undefined} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="打开次数" value={m?.sessions ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="访问页面数 (PV)" value={m?.pv ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="新用户数" value={m?.newUsers ?? '—'} loading={loading} /></Card></Col>
       </Row>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="人均访问时长" value={m?.avgDuration ?? '—'} suffix={m ? '秒' : undefined} loading={loading} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="人均访问深度" value={m?.avgDepth ?? '—'} suffix={m ? '页' : undefined} loading={loading} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="跳出率" value={m ? m.bounceRate + '%' : '—'} loading={loading} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="支付转化率" value={m ? m.conversionRate + '%' : '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="人均访问时长" value={m?.avgDuration ?? '—'} suffix={m ? '秒' : undefined} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="人均访问深度" value={m?.avgDepth ?? '—'} suffix={m ? '页' : undefined} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="跳出率" value={m ? m.bounceRate + '%' : '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="支付转化率" value={m ? m.conversionRate + '%' : '—'} loading={loading} /></Card></Col>
       </Row>
       <Card size="small" title="核心指标趋势（近 7 天）" style={{ marginBottom: 16 }}>
         <ChartPlaceholder height={240} description="趋势图开发中" />
       </Card>
       <Row gutter={16}>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           <Card size="small" title="访问来源 TOP 5">
             {channels.length > 0 ? channels.map((s, i) => (
               <div key={s.channel} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -52,7 +52,7 @@ function CoreDataTab({ appCode }: { appCode?: string }) {
             )}
           </Card>
         </Col>
-        <Col span={12}>
+        <Col xs={24} sm={12}>
           <Card size="small" title="访问页面 TOP 5">
             {pages.length > 0 ? pages.map((s, i) => (
               <div key={s.path} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -84,15 +84,15 @@ function RealtimeTab({ appCode }: { appCode?: string }) {
     <div>
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={6}><Statistic title="实时在线" value={r?.online ?? '—'} valueStyle={{ color: '#52c41a' }} prefix={<ThunderboltOutlined />} /></Col>
-          <Col span={6}><Statistic title="今日访问人数" value={r?.todayUv ?? '—'} /></Col>
-          <Col span={6}><Statistic title="今日打开次数" value={r?.todaySessions ?? '—'} /></Col>
-          <Col span={6}><Statistic title="今日新增用户" value={r?.todayNewUsers ?? '—'} /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="实时在线" value={r?.online ?? '—'} valueStyle={{ color: '#52c41a' }} prefix={<ThunderboltOutlined />} /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="今日访问人数" value={r?.todayUv ?? '—'} /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="今日打开次数" value={r?.todaySessions ?? '—'} /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="今日新增用户" value={r?.todayNewUsers ?? '—'} /></Col>
         </Row>
       </Card>
       <Row gutter={16}>
-        <Col span={12}><Card size="small" title="实时来源分布"><ChartPlaceholder height={200} description="实时来源饼图开发中" /></Card></Col>
-        <Col span={12}>
+        <Col xs={24} sm={12}><Card size="small" title="实时来源分布"><ChartPlaceholder height={200} description="实时来源饼图开发中" /></Card></Col>
+        <Col xs={24} sm={12}>
           <Card size="small" title="实时活跃页面 TOP 10">
             {r?.topPages && r.topPages.length > 0 ? r.topPages.map((s, i) => (
               <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
@@ -128,15 +128,15 @@ function AccessAnalysisTab({ appCode }: { appCode?: string }) {
   return (
     <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={4}><Card size="small"><Statistic title="日活" value={a?.dau ?? '—'} loading={loading} /></Card></Col>
-        <Col span={4}><Card size="small"><Statistic title="月活" value={a?.mau ?? '—'} loading={loading} /></Card></Col>
-        <Col span={4}><Card size="small"><Statistic title="人均次数" value={a?.avgSessionsPerUser ?? '—'} loading={loading} /></Card></Col>
-        <Col span={4}><Card size="small"><Statistic title="人均时长" value={a?.avgDuration ?? '—'} suffix={a ? '秒' : undefined} loading={loading} /></Card></Col>
-        <Col span={4}><Card size="small"><Statistic title="次均页面" value={a?.avgPagesPerSession ?? '—'} loading={loading} /></Card></Col>
-        <Col span={4}><Card size="small"><Statistic title="7 日留存" value={a ? a.day7Retention + '%' : '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="日活" value={a?.dau ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="月活" value={a?.mau ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="人均次数" value={a?.avgSessionsPerUser ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="人均时长" value={a?.avgDuration ?? '—'} suffix={a ? '秒' : undefined} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="次均页面" value={a?.avgPagesPerSession ?? '—'} loading={loading} /></Card></Col>
+        <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="7 日留存" value={a ? a.day7Retention + '%' : '—'} loading={loading} /></Card></Col>
       </Row>
       <Card size="small" title="访问渠道分析" style={{ marginBottom: 16 }}>
-        <Table rowKey="channel" columns={cols} dataSource={a?.channels || []} loading={loading} size="small" pagination={false} />
+        <Table scroll={{ x: 'max-content' }} rowKey="channel" columns={cols} dataSource={a?.channels || []} loading={loading} size="small" pagination={false} />
       </Card>
       <Card size="small" title="访问趋势"><ChartPlaceholder height={200} description="访问趋势图开发中" /></Card>
     </div>
@@ -156,13 +156,13 @@ function RetentionTab({ appCode }: { appCode?: string }) {
   return (
     <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="次日留存" value={r?.summary ? (r.summary.day1Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="7 日留存" value={r?.summary ? (r.summary.day7Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="30 日留存" value={r?.summary ? (r.summary.day30Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="活跃 7 日留存" value={r?.summary ? (r.summary.activeDay7Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="次日留存" value={r?.summary ? (r.summary.day1Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="7 日留存" value={r?.summary ? (r.summary.day7Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="30 日留存" value={r?.summary ? (r.summary.day30Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="活跃 7 日留存" value={r?.summary ? (r.summary.activeDay7Rate * 100).toFixed(1) + '%' : '—'} /></Card></Col>
       </Row>
       <Card size="small" title="新增用户留存表" style={{ marginBottom: 16 }}>
-        <Table size="small" pagination={false} dataSource={r?.cohorts || []} loading={loading} rowKey="date"
+        <Table scroll={{ x: 'max-content' }} size="small" pagination={false} dataSource={r?.cohorts || []} loading={loading} rowKey="date"
           columns={[
             { title: '日期', dataIndex: 'date', width: 80, fixed: 'left' as const },
             { title: '新用户', dataIndex: 'users', width: 80 },
@@ -205,13 +205,13 @@ function PageAnalysisTab({ appCode }: { appCode?: string }) {
   return (
     <div>
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card size="small"><Statistic title="日访问页面数" value={totalPv > 0 ? totalPv : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="人均访问深度" value={analysis?.avgPagesPerSession ?? '—'} suffix={analysis ? '页' : undefined} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="7 日留存" value={analysis ? analysis.day7Retention + '%' : '—'} /></Card></Col>
-        <Col span={6}><Card size="small"><Statistic title="人均会话数" value={analysis?.avgSessionsPerUser ?? '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="日访问页面数" value={totalPv > 0 ? totalPv : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="人均访问深度" value={analysis?.avgPagesPerSession ?? '—'} suffix={analysis ? '页' : undefined} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="7 日留存" value={analysis ? analysis.day7Retention + '%' : '—'} /></Card></Col>
+        <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="人均会话数" value={analysis?.avgSessionsPerUser ?? '—'} /></Card></Col>
       </Row>
       <Card size="small" title="页面访问明细">
-        <Table rowKey="path" columns={cols} dataSource={pages} loading={loading} size="small" pagination={false} />
+        <Table scroll={{ x: 'max-content' }} rowKey="path" columns={cols} dataSource={pages} loading={loading} size="small" pagination={false} />
       </Card>
     </div>
   );
@@ -228,10 +228,10 @@ function AnomalyTab({ appCode }: { appCode?: string }) {
     <div>
       <Card size="small" style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={6}><Statistic title="今日访问人数" value={anomalies.length > 0 ? '—' : '—'} suffix={<RiseOutlined style={{ color: '#52c41a' }} />} /></Col>
-          <Col span={6}><Statistic title="较昨日变化" value="—" /></Col>
-          <Col span={6}><Statistic title="今日支付人数" value="—" /></Col>
-          <Col span={6}><Statistic title="较昨日变化" value="—" /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="今日访问人数" value={anomalies.length > 0 ? '—' : '—'} suffix={<RiseOutlined style={{ color: '#52c41a' }} />} /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="较昨日变化" value="—" /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="今日支付人数" value="—" /></Col>
+          <Col xs={12} sm={12} md={6}><Statistic title="较昨日变化" value="—" /></Col>
         </Row>
       </Card>
       <Card size="small" title="异动预警">
