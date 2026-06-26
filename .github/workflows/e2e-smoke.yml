@@ -1,0 +1,40 @@
+name: E2E Smoke
+
+# 端到端冒烟:起完整 docker-compose 栈,跑 scripts/smoke-test.sh 验证
+# 「SDK → 采集 → ClickHouse → 管理端」整条链路。这是「能否上线」的自动化闸门。
+#
+# 触发:合并到 main 后 + 手动。E2E 较重(需构建 3 个应用镜像 + 拉中间件),不挂在每次 push。
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 注:子模块为同组织独立仓库。若为私有,需提供有跨仓读权限的 PAT(secret: SUBMODULE_TOKEN);
+# 公有或同仓时回退到 github.token。
+jobs:
+  e2e:
+    name: Full-stack E2E smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ADMIN_INITIAL_PASSWORD: SmokeAdmin#2026
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.SUBMODULE_TOKEN || github.token }}
+
+      - name: Build & start full stack
+        run: docker compose up -d --build
+
+      - name: Run end-to-end smoke
+        run: bash scripts/smoke-test.sh
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

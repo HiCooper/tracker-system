@@ -1,0 +1,27 @@
+id: "D-20260622-004"
+timestamp: "2026-06-22T14:00:00"
+topic: "端到端冒烟自动化 + 上线 checklist;修复硬编码 admin 基址(8099)阻断采集鉴权"
+context: >
+  「能否上线」的核心未决项是「没有一条端到端链路被验证过」(本地无 Docker,Testcontainers IT
+  仅覆盖单组件)。落地 E2E 冒烟时发现 tracker-service 硬编码 http://localhost:8099 调 admin 内网
+  (admin 实为 8082,8099 不存在),容器化采集鉴权恒断 —— 这是上线阻断。
+chosen: >
+  1) 修复 tracker-service:AuthController/SignatureVerifier 的 admin 基址改 @Value
+     ${gateflow.admin.base-url:http://localhost:8082},compose 注入 GATEFLOW_ADMIN_BASE_URL;
+  2) scripts/smoke-test.sh:对真实运行栈验证「登录→建应用→/collect/auth→上报→CH 落库→admin 可查」整链,逐步精确报点;
+  3) .github/workflows/e2e-smoke.yml:合并 main / 手动触发,起完整 compose 栈跑冒烟,作为上线自动化闸门;
+  4) docker-compose 注入 ADMIN_INITIAL_PASSWORD(示例值,仅本地/E2E),使登录可确定性自动化;
+  5) docs/launch-checklist.md:现行版可勾选上线闸门,取代 2026-06-15 基线评估。
+rejected:
+  - "只写 checklist 不自动化: 端到端仍靠人肉,易回归;冒烟脚本+CI 才能持续守门"
+  - "在 CI 用 service container 起 CH/Kafka/Redis: Testcontainers/compose 已足够;service CI 的组件 IT 已在跑,这里要的是全栈编排级 E2E"
+  - "仅文档记录 8099 隐患不修: 该 bug 直接让 E2E 无法通过,属上线阻断,必须修"
+constraints_ref:
+  - "anti_goals: 不编造『已验证』——E2E 必须真跑"
+  - "api_backward_compat: admin 基址仅可配化,鉴权契约不变"
+impact:
+  files:
+    - "tracker-service: api/AuthController, security/SignatureVerifier(已并 #12)"
+    - "tracker-system: docker-compose.yml, scripts/smoke-test.sh, .github/workflows/e2e-smoke.yml, docs/launch-checklist.md, 子模块指针"
+  risk: "low"
+  verification: "tracker-service mvn 97/97 通过;脚本 bash -n 通过;E2E 实跑需在有 Docker 的环境(CI e2e-smoke)首次验证"
