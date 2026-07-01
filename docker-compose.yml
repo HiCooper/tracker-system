@@ -23,6 +23,9 @@ services:
     container_name: tracker-clickhouse
     environment:
       CLICKHOUSE_DB: gateflow_tracker
+      # 24.8 镜像需显式设置凭据以避免 default 用户 auth 拒绝(Code 516)
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: tracker123
     ports: ["8123:8123", "9000:9000"]
     volumes:
       - clickhouse_data:/var/lib/clickhouse
@@ -30,7 +33,7 @@ services:
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--user", "default", "--password", "tracker123", "--query", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -78,7 +81,7 @@ services:
     environment:
       CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123/gateflow_tracker
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_PASSWORD: tracker123
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
@@ -105,7 +108,7 @@ services:
       TRACKER_DB_PASSWORD: tracker123
       CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123
       CLICKHOUSE_USER: default
-      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_PASSWORD: tracker123
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       # 监控页拉取采集服务 DLQ 等指标
